@@ -59,7 +59,7 @@ services:
       - key: PHAROS_ROUTER_AUTH_TOKEN
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://pharos-router-web.onrender.com
+        value: https://pharos-router-web-jrst.onrender.com
       - key: API_HOST
         value: 0.0.0.0
       - key: API_PORT
@@ -103,6 +103,6 @@ services:
     autoDeploy: true
     envVars:
       - key: VITE_API_BASE
-        value: https://pharos-router-api.onrender.com
+        value: https://pharos-router-api-jrst.onrender.com
       - key: NODE_ENV
         value: production
