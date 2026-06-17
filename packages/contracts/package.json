@@ -1,0 +1,29 @@
+{
+  "name": "@pharos-router/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": "./dist/src/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty",
+    "test": "hardhat --config hardhat.config.cjs test test/atlantic.test.ts test/registry.test.ts test/invariants.test.ts",
+    "deploy:atlantic": "hardhat --config hardhat.config.cjs run scripts/deploy.ts"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "@pharos-router/workflow": "0.1.0",
+    "viem": "^2.7.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-viem": "^2.0.0",
+    "ethers": "^6.10.0",
+    "hardhat": "^2.22.0"
+  }
+}

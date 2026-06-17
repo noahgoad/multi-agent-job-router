@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+coverage/
+
+# Env
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Test output
+artifacts/
+cache/
+typechain-types/
+
+# OS
+Thumbs.db
+desktop.ini
+
+# Local data
+data/
+*.sqlite
+*.sqlite3
+
+# OS / Windows artifacts
+nul
+
+# Ad-hoc debug / test outputs
+tmp-play*.json
+*.tmp.json
+.tmp-designs/

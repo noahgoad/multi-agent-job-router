@@ -1,0 +1,16 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/policy" },
+    { "path": "./packages/workflow" },
+    { "path": "./packages/registry" },
+    { "path": "./packages/routing" },
+    { "path": "./packages/contracts" },
+    { "path": "./packages/sdk" },
+    { "path": "./services/orchestrator" },
+    { "path": "./services/verifier" },
+    { "path": "./apps/api" },
+    { "path": "./apps/web" },
+    { "path": "./apps/mcp" }
+  ]
+}

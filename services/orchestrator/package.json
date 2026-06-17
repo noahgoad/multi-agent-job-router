@@ -1,0 +1,22 @@
+{
+    "name":  "@pharos-router/orchestrator",
+    "version":  "0.1.0",
+    "private":  true,
+    "type":  "module",
+    "main":  "dist/src/index.js",
+    "types":  "dist/src/index.d.ts",
+    "exports":  {
+                    ".":  "./dist/src/index.js"
+                },
+    "dependencies":  {
+                         "@pharos-router/policy":  "0.1.0",
+                         "@pharos-router/workflow":  "0.1.0",
+                         "@pharos-router/registry":  "0.1.0",
+                         "@pharos-router/routing":  "0.1.0"
+                     },
+    "scripts":  {
+                    "build":  "tsc -b",
+                    "typecheck":  "tsc -b --pretty",
+                    "test":  "vitest run"
+                }
+}

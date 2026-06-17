@@ -1,0 +1,47 @@
+{
+  "name": "pharos-multi-agent-job-router",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Coordination layer that decomposes approved jobs into bounded tasks, selects qualified agents, verifies intermediate results, and produces verifiable Pharos receipts.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty",
+    "lint": "eslint \"packages/**/src/**/*.ts\" \"services/**/src/**/*.ts\" \"apps/**/src/**/*.ts\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:contracts": "hardhat --config packages/contracts/hardhat.config.cjs test packages/contracts/test/atlantic.test.ts packages/contracts/test/registry.test.ts packages/contracts/test/invariants.test.ts",
+    "check:protected": "node tools/check-protected.mjs",
+    "check:isolation": "node tools/check-isolation.mjs",
+    "check:secrets": "node tools/check-secrets.mjs",
+    "verify": "node tools/verify.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "fastify": "^4.27.0",
+    "viem": "^2.7.0",
+    "zod": "^3.23.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  }
+}

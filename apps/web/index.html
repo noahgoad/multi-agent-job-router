@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Pharos Multi-Agent Job Router</title>
+    <!--
+      Inter is the closest open-source substitute for BinanceNova
+      (display + body). IBM Plex Sans substitutes for BinancePlex
+      (numbers / financial display). JetBrains Mono is used for hashes
+      where monospaced alignment matters more than tabular fidelity.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /*
+       * Page-level resets only. All component colours / radii / sizes
+       * live in src/theme.ts so the design system has a single source
+       * of truth.
+       */
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background: #0b0e11;
+        color: #eaecef;
+        font-family: "Inter", "BinanceNova", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "calt", "rlig", "ss01";
+      }
+
+      body {
+        /* Binance uses flat colour blocks. The only atmospheric touch
+           is a very subtle warm radial at the top to soften the
+           otherwise-stark near-black canvas. */
+        background: radial-gradient(
+            circle at 50% -10%,
+            rgba(252, 213, 53, 0.04) 0%,
+            transparent 55%
+          ),
+          #0b0e11;
+        background-attachment: fixed;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* The native focus ring is invisible on a dark canvas. The
+         Binance design system uses a thin info-blue ring for every
+         focusable surface. */
+      :focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+
+      ::selection {
+        background-color: rgba(252, 213, 53, 0.3);
+        color: #181a20;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      button {
+        font-family: inherit;
+      }
+
+      /* Binance's tight radius hierarchy means cards have crisp 8-12px
+         corners; the default scrollbar (which uses 8-16px round
+         corners) feels out of place. Match the brand. */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #2b3139;
+        border-radius: 6px;
+        border: 1px solid #0b0e11;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #3a414b;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

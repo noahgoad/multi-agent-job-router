@@ -1,0 +1,23 @@
+{
+  "name": "@pharos-router/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty",
+    "start": "node dist/src/main.js",
+    "dev": "tsx src/main.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "^4.27.0",
+    "@pharos-router/workflow": "0.1.0",
+    "@pharos-router/registry": "0.1.0",
+    "@pharos-router/routing": "0.1.0",
+    "@pharos-router/orchestrator": "0.1.0",
+    "@pharos-router/verifier": "0.1.0",
+    "@pharos-router/contracts": "0.1.0"
+  }
+}

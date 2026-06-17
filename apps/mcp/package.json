@@ -1,0 +1,17 @@
+{
+  "name": "@pharos-router/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@pharos-router/sdk": "0.1.0",
+    "@pharos-router/workflow": "0.1.0"
+  }
+}
