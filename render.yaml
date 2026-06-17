@@ -66,7 +66,7 @@ services:
       sizeGB: 1
 
   # ---------- Web ----------
-  - type: static_site
+  - type: static
     name: pharos-router-web
     plan: free
     branch: main
