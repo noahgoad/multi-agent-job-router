@@ -448,10 +448,12 @@ E2E: `apps/web/e2e/dashboard.spec.ts` (Playwright).
 
 The project ships with everything needed to deploy on **Render** as two services via a single Blueprint:
 
-- `apps/api` → **Render Web Service** (Node), with a persistent disk mounted at `/var/data`
+- `apps/api` → **Render Web Service** (Node) — auto-seeds the demo job on every boot
 - `apps/web` → **Render Web Service** (Node) running `apps/web/serve.mjs`, a dependency-free static file server
 
-> Render Blueprints cannot declare `static` sites via YAML. We deploy the dashboard as a regular Node Web Service that serves its own Vite build output — identical runtime to a Render Static Site for this read-only workload. See [`docs/deployment/render.md`](docs/deployment/render.md) for the full step-by-step.
+> Render Blueprints cannot declare `static` sites via YAML. We deploy the dashboard as a regular Node Web Service that serves its own Vite build output — identical runtime to a Render Static Site for this read-only workload.
+>
+> **Persistence:** Render's free Web Services do not support persistent disks, so the in-memory `JobStore` resets on every cold start. The API compensates with `PHAROS_ROUTER_AUTO_SEED=1` (set in `render.yaml`), which re-creates the `demo` job on every boot if the store is empty. For real persistence, upgrade to a paid plan and add a `disk:` block. See [`docs/deployment/render.md`](docs/deployment/render.md) for the full step-by-step.
 
 ---
 
@@ -468,7 +470,7 @@ The project ships with everything needed to deploy on **Render** as two services
 
 The project includes four explicit **stability improvements** that were added after the initial implementation:
 
-### 1. File-backed persistence
+### 1. File-backed persistence (paid tier)
 
 `JobStore` accepts an optional `FileStorage` instance. When `PHAROS_ROUTER_DATA_DIR` is set, the API boots a `FileStorage` that:
 
@@ -476,6 +478,8 @@ The project includes four explicit **stability improvements** that were added af
 - serialises `BigInt` with a trailing `n` and revives it on load,
 - hydrates the in-memory store on boot,
 - is flushed on every mutation that should survive a restart.
+
+This path is used on **paid Render plans** (where persistent disks are available). On the free tier the disk block is omitted and the store resets on each cold start; the API auto-seeds the demo job on boot (see below) so the dashboard always has something to show.
 
 ### 2. Watchdog auto-restart
 
@@ -493,11 +497,11 @@ The project includes four explicit **stability improvements** that were added af
 
 `setTimeout` is used (not `setInterval`) so the back-off is observed even on a slow connection.
 
-### 4. Auto-play demo
+### 4. Auto-play demo + auto-seed on boot
 
-The dashboard calls `runAuto("happy")` on first load when every task is `PLANNED`. The seed script only creates + approves the job; the orchestrator then walks it through every state transition with `tickMs = 1500 ms` (~6 s for the happy path).
+The dashboard calls `runAuto("happy")` on first load when every task is `PLANNED`. Add `?autoplay=0` to the URL to disable and step manually.
 
-Add `?autoplay=0` to the URL to disable auto-play and step manually.
+On the server side, when `PHAROS_ROUTER_AUTO_SEED=1` is set and the in-memory store is empty on boot, the API re-creates the `demo` job in `PLANNED` state. This keeps the demo URL consistent across every cold start when there is no persistent disk to fall back on.
 
 ---
 

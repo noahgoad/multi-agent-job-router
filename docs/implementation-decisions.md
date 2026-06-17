@@ -261,3 +261,42 @@ the source of truth and is never edited to hide incomplete work.
   fallbacks correctly. Path-traversal attempts (`/../etc/passwd`)
   safely fall back to `index.html`. Local smoke test via curl.
 - **Status:** Applied.
+
+## Decision 14: Free-tier Render — drop disk, add auto-seed, hardcode API URL
+
+- **Date:** 2026-06-18
+- **Phase:** Phase 13 (deploy on Render)
+- **Observation:** Three more Render Blueprint errors after the
+  dashboard type fix:
+  1. `disks are not supported for free tier services` — the
+     `disk:` block on the API is rejected.
+  2. `invalid service property: hostUrl. Valid properties are
+     connectionString, host, hostport, port` — the web's
+     `fromService.property: hostUrl` is rejected.
+- **Decision:**
+  1. **Drop the disk.** Free Render Web Services have no persistent
+     disk. The `JobStore` resets on every cold start. To keep the
+     demo URL consistent, add `PHAROS_ROUTER_AUTO_SEED=1` in
+     `render.yaml`. The API checks the store on boot; if empty, it
+     re-creates the same `demo` job in `PLANNED` state. The seed
+     spec is byte-identical to `scripts/seed-demo.mjs`.
+  2. **Hardcode `VITE_API_BASE`.** Render's `fromService` only
+     exposes `host` / `hostport` / `port` / `connectionString` —
+     none give the `https://host` URL the web needs at build time.
+     The service name `pharos-router-api` is fixed in the Blueprint,
+     so Render assigns exactly `https://pharos-router-api.onrender.com`.
+     Hardcoding that URL is the simplest reliable wiring. If you
+     rename the service, update both `CORS_ORIGINS` and
+     `VITE_API_BASE` together.
+- **Files updated:**
+  - `apps/api/src/main.ts` — added `buildDemoSpec()` and
+    `autoSeedDemoIfEmpty()`. Verified locally: cold start creates
+    and approves the demo job; second cold start skips (store
+    empty again because no disk) and re-seeds.
+  - `render.yaml` — disk removed, `PHAROS_ROUTER_AUTO_SEED=1`
+    added, `VITE_API_BASE` hardcoded to the predictable URL.
+  - `docs/deployment/render.md` — free-tier persistence section,
+    seed instructions, paid-tier upgrade path.
+  - `README.md` — Deployment section and Stability features
+    section updated to reflect free-tier + auto-seed.
+- **Status:** Applied. 84/84 tests pass, typecheck clean.

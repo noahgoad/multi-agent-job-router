@@ -167,6 +167,132 @@ const deps =
       }
     : undefined;
 
+/**
+ * FNV-1a 32-bit hash, zero-padded to 32 bytes (66 chars including
+ * `0x` prefix). Mirrors the helper in `scripts/seed-demo.mjs` so the
+ * auto-seeded job is byte-identical to one created via the script.
+ */
+function demoHash(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  const hex = (h >>> 0).toString(16).padStart(8, "0");
+  return ("0x" + hex).padEnd(66, "0");
+}
+
+/**
+ * Demo JobSpec used when `PHAROS_ROUTER_AUTO_SEED=1`. The same 4-task
+ * diamond DAG that `scripts/seed-demo.mjs` POSTs, so the dashboard
+ * shows the exact same job whether the user starts the API locally
+ * with the seed script or pulls the public Render deployment.
+ */
+function buildDemoSpec() {
+  return {
+    jobId: "demo",
+    goal: "Demo: route a 4-task diamond DAG, verify it, and inspect the receipt",
+    goalHash: demoHash("goal:demo"),
+    budgetMicrousd: 1_000_000n,
+    deadline: 9_999_999_999,
+    allowedCapabilities: [
+      "fetch",
+      "analyze",
+      "summarize",
+      "verify",
+      "financial",
+    ],
+    policyHash: demoHash("policy:demo"),
+    verifier: "verifier-default",
+    tasks: [
+      {
+        taskId: "t1",
+        description: "Fetch the source document",
+        dependencies: [],
+        capability: "fetch",
+        inputHash: demoHash("t1:demo"),
+        budgetMicrousd: 100_000n,
+        deadline: 9_000_000_000,
+        verifier: "verifier-default",
+        verifierKind: "hash",
+      },
+      {
+        taskId: "t2",
+        description: "Analyze the fetched content",
+        dependencies: ["t1"],
+        capability: "analyze",
+        inputHash: demoHash("t2:demo"),
+        budgetMicrousd: 200_000n,
+        deadline: 9_400_000_000,
+        verifier: "verifier-default",
+        verifierKind: "deterministic",
+      },
+      {
+        taskId: "t3",
+        description: "Validate the analysis",
+        dependencies: ["t1"],
+        capability: "verify",
+        inputHash: demoHash("t3:demo"),
+        budgetMicrousd: 200_000n,
+        deadline: 9_600_000_000,
+        verifier: "verifier-default",
+        verifierKind: "schema",
+      },
+      {
+        taskId: "t4",
+        description: "Finalize the report",
+        dependencies: ["t2", "t3"],
+        capability: "summarize",
+        inputHash: demoHash("t4:demo"),
+        budgetMicrousd: 300_000n,
+        deadline: 9_900_000_000,
+        verifier: "verifier-default",
+        verifierKind: "schema",
+      },
+    ],
+  };
+}
+
+/**
+ * On boot, if demo mode is on AND the in-memory store is empty,
+ * create + approve the demo job so the dashboard has something to
+ * render on first load. The job is left in `PLANNED` — the dashboard
+ * drives the slow-motion execute itself via `POST /jobs/:id/play`.
+ *
+ * Why this exists:
+ *   Render's free tier does not support persistent disks (we tried;
+ *   see `render.yaml`). The dashboard would otherwise land on an
+ *   empty store and have nothing to show. With auto-seed, every cold
+ *   start leaves the store in the same `demo PLANNED` state, so the
+ *   demo URL is consistent regardless of how many times the service
+ *   has slept and woken up.
+ */
+function autoSeedDemoIfEmpty() {
+  if (process.env.PHAROS_ROUTER_DEMO !== "1") return;
+  if (process.env.PHAROS_ROUTER_AUTO_SEED !== "1") return;
+  if (!deps) return;
+
+  const store = deps.store;
+  if (store.list().length > 0) {
+    // eslint-disable-next-line no-console
+    console.log("[auto-seed] store already populated; skipping");
+    return;
+  }
+
+  const spec = buildDemoSpec();
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const job = store.create(spec as never, now);
+    job.approval = { approver: "auto-seed", approvedAt: now };
+    store.save();
+    // eslint-disable-next-line no-console
+    console.log(`[auto-seed] created + approved demo job "${spec.jobId}" (PLANNED)`);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[auto-seed] failed to seed demo job:", err);
+  }
+}
+
 startServer({
   host,
   port,
@@ -174,6 +300,9 @@ startServer({
   ...(corsOrigins ? { security: { corsOrigins } } : {}),
 })
   .then(({ url }) => {
+    // Run the auto-seed after the server is up so the first
+    // dashboard request finds the demo job ready.
+    autoSeedDemoIfEmpty();
     // eslint-disable-next-line no-console
     console.log(`pharos-router API listening on ${url}`);
     if (process.env.PHAROS_ROUTER_DEMO === "1") {

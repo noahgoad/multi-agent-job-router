@@ -1,8 +1,10 @@
 # Deploying to Render
 
-This guide walks through deploying the Pharos Multi-Agent Job Router to [Render](https://render.com) as two services backed by one GitHub repository.
+This guide walks through deploying the Pharos Multi-Agent Job Router to [Render](https://render.com) as two services backed by one GitHub repository. The recommended path is **render.yaml**, a Blueprint that creates both services in one click.
 
-> **Why Render?** Render supports persistent disks on the free tier, which the API needs for `FileStorage` (`jobs.json`). Serverless platforms (Vercel, Netlify Cloud Functions) do not provide a persistent filesystem, so the in-place `FileStorage` would lose data after every cold start.
+> **Why Render?** Render supports persistent disks on the paid tier, which the API uses for `FileStorage` (`jobs.json`). Serverless platforms (Vercel, Netlify Cloud Functions) do not provide a persistent filesystem, so the in-place `FileStorage` would lose data after every cold start.
+>
+> **Why free tier is OK for the demo:** Render's free Web Services do not support persistent disks, so the `JobStore` resets on every cold start. The API ships with `PHAROS_ROUTER_AUTO_SEED=1` enabled in `render.yaml`, which re-seeds the demo job on every boot if the store is empty. The demo URL therefore always shows the same `demo` job in `PLANNED` state, no matter how many times the service has slept and woken up. For real persistence, upgrade to a paid plan and add a `disk:` block to the API service.
 
 ## 0. Prerequisites
 
@@ -36,23 +38,13 @@ In the Render dashboard: **New + → Web Service → Connect to GitHub → pick 
 | Field | Value |
 |-------|-------|
 | Name | `pharos-router-api` |
-| Region | `Oregon` (or closest to you) |
+| Region | `Oregon` |
 | Branch | `main` |
 | Runtime | `Node` |
 | Build command | `npm ci && npm run build` |
-| Start command | `PHAROS_ROUTER_DATA_DIR=/var/data PHAROS_ROUTER_AUTH_TOKEN=$PHAROS_ROUTER_AUTH_TOKEN node apps/api/dist/src/main.js` |
+| Start command | `node apps/api/dist/src/main.js` |
 | Instance type | `Free` |
 | Health check path | `/healthz` |
-
-### Persistent disk
-
-Scroll to **Disks** and add:
-
-| Field | Value |
-|-------|-------|
-| Name | `pharos-data` |
-| Mount path | `/var/data` |
-| Size | `1 GB` |
 
 ### Environment variables
 
@@ -60,7 +52,8 @@ In **Environment → Add environment variable**:
 
 | Key | Value |
 |-----|-------|
-| `PHAROS_ROUTER_DATA_DIR` | `/var/data` |
+| `PHAROS_ROUTER_DEMO` | `1` |
+| `PHAROS_ROUTER_AUTO_SEED` | `1` (re-seeds the demo job on every boot, since the free tier has no persistent disk) |
 | `PHAROS_ROUTER_AUTH_TOKEN` | *(paste the hex from step 0)* |
 
 Optional but recommended:
@@ -157,6 +150,8 @@ curl -X POST https://pharos-router-api.onrender.com/jobs \
 
 Easier: open the dashboard, copy the seed payload from `scripts/seed-demo.mjs`, POST it manually with `?authToken=<your token>` set as a URL param.
 
+> **Skip on Render:** `render.yaml` sets `PHAROS_ROUTER_AUTO_SEED=1`, so the API re-seeds the demo job on every boot. The store is empty after each cold start (no persistent disk on free tier), but the next request finds the job already created. This is the same `demo` job that `scripts/seed-demo.mjs` produces.
+
 > ⚠️ The dashboard's `authToken` URL parameter is a dev convenience. In a real deployment, switch the web to read the token from a cookie or a server-side proxy that injects the header.
 
 ## 6. Verify
@@ -173,8 +168,19 @@ Open the dashboard URL and confirm:
 
 | Service | Free tier | Cold start | Notes |
 |---------|-----------|------------|-------|
-| Web Service | 750 h/mo, sleeps after 15 min idle | ~30 s on first wake | enough for demos |
+| Web Service | 750 h/mo, sleeps after 15 min idle, no persistent disk | ~30 s on first wake | enough for demos; auto-seed keeps the store populated |
 | Static Site | 100 GB bandwidth/mo | n/a (CDN) | always warm |
-| Persistent disk | 1 GB free | n/a | bound to the Web Service lifecycle |
+| Persistent disk | not on free tier | n/a | upgrade to Starter ($7/mo) to enable |
 
 For a continuously-warm demo, upgrade the Web Service to a paid plan or wire an external uptime pinger (e.g. <https://uptimerobot.com>) to hit `/healthz` every 14 minutes.
+
+For real persistence (so jobs survive cold starts), upgrade the API to a paid plan and add the following to its service block in `render.yaml`:
+
+```yaml
+disk:
+  name: pharos-data
+  mountPath: /var/data
+  sizeGB: 1
+```
+
+…and set `PHAROS_ROUTER_DATA_DIR=/var/data` in the env vars. The auto-seed becomes a no-op once the disk holds a `jobs.json` from a previous run.

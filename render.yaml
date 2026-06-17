@@ -1,7 +1,7 @@
 # Render Blueprint for the Pharos Multi-Agent Job Router
 #
 # This file lets Render spin up both the API (Web Service) and the
-# dashboard (Static Site) from a single click.
+# dashboard (Web Service) from a single click.
 #
 # How to use:
 #   1. Push this repo to GitHub (already done).
@@ -26,10 +26,13 @@
 #   rename the web service, update this value.
 #
 # Persistence:
-#   /var/data is a 1 GB persistent disk that survives Web Service
-#   restarts. The API stores jobs.json there. On free tier the
-#   service sleeps after 15 min idle; the disk is preserved across
-#   sleeps, so the next wake sees the same job state.
+#   This Blueprint is free-tier-only. Render's free Web Services do
+#   not support persistent disks, so the in-memory JobStore starts
+#   empty on every cold start. We work around that with
+#   PHAROS_ROUTER_AUTO_SEED=1 — the API re-seeds the demo job on
+#   boot if the store is empty, so the demo URL is consistent across
+#   every wake/sleep cycle. For real persistence, upgrade to a paid
+#   plan and add a `disk:` block to the API service below.
 
 services:
   # ---------- API ----------
@@ -46,8 +49,8 @@ services:
     envVars:
       - key: PHAROS_ROUTER_DEMO
         value: "1"
-      - key: PHAROS_ROUTER_DATA_DIR
-        value: /var/data
+      - key: PHAROS_ROUTER_AUTO_SEED
+        value: "1"
       - key: PHAROS_ROUTER_AUTH_TOKEN
         generateValue: true
       - key: CORS_ORIGINS
@@ -60,10 +63,6 @@ services:
         value: production
       - key: PHAROS_CHAIN_ID
         value: "688689"
-    disk:
-      name: pharos-data
-      mountPath: /var/data
-      sizeGB: 1
 
   # ---------- Web ----------
   # Note: Render Blueprints do not support static sites via YAML; the
@@ -72,6 +71,12 @@ services:
   # build output from `apps/web/dist/` (see `apps/web/serve.mjs`).
   # The runtime is identical to a Render Static Site for this
   # workload (read-only, no backend).
+  #
+  # VITE_API_BASE: Render's `fromService` only exposes a few
+  # properties (host, hostport, port, connectionString) — not the
+  # full `https://host` URL. So we hardcode the API's public URL
+  # here. The service name `pharos-router-api` is fixed in this
+  # file, so Render assigns exactly this URL.
   - type: web
     name: pharos-router-web
     runtime: node
@@ -87,13 +92,7 @@ services:
     healthCheckPath: /
     autoDeploy: true
     envVars:
-      # Vite bakes VITE_* into the bundle at build time. We point it at
-      # the API service's public URL so the deployed dashboard knows
-      # where to POST.
       - key: VITE_API_BASE
-        fromService:
-          type: web
-          name: pharos-router-api
-          property: hostUrl
+        value: https://pharos-router-api.onrender.com
       - key: NODE_ENV
         value: production
