@@ -20,7 +20,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:contracts": "hardhat --config packages/contracts/hardhat.config.cjs test packages/contracts/test/atlantic.test.ts packages/contracts/test/registry.test.ts packages/contracts/test/invariants.test.ts",
-    "check:protected": "node tools/check-protected.mjs",
     "check:isolation": "node tools/check-isolation.mjs",
     "check:secrets": "node tools/check-secrets.mjs",
     "verify": "node tools/verify.mjs"

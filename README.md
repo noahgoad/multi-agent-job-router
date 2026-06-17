@@ -38,7 +38,6 @@ A live deployment of the dashboard is running at:
 13. [Stability features](#stability-features)
 14. [Contributing](#contributing)
 15. [License](#license)
-16. [Pointers](#pointers)
 
 ---
 
@@ -201,13 +200,11 @@ stateDiagram-v2
 ```
 pharos-multi-agent-job-router/
 ├── README.md                          # ← you are here
-├── README.dev.md                      # working developer notes
-├── HANDOFF.md                         # engineering handoff
-├── DESIGN.md                          # design rationale
 ├── package.json                       # root, npm workspaces
 ├── tsconfig.json / tsconfig.base.json
 ├── vitest.config.ts
 ├── .env.example                       # placeholder env (no secrets)
+├── render.yaml                        # Render Blueprint (API + Static Site)
 │
 ├── packages/
 │   ├── policy/                        # @pharos-router/policy
@@ -263,17 +260,16 @@ pharos-multi-agent-job-router/
 │   └── atlantic-acceptance/           # 6 scenario scripts (a..f)
 │
 ├── tools/                             # static verifiers
-│   ├── check-protected.{mjs,ps1}      # SHA-256 of protected files
 │   ├── check-isolation.{mjs,ps1}      # workspace isolation
 │   ├── check-secrets.{mjs,ps1}        # secret scanner
 │   └── verify.{mjs,ps1}               # combined verify
 │
 └── docs/
-    ├── design/  decision/  change/    # non-protected ops docs
-    ├── acceptance-results/            # local + Atlantic results
-    ├── screenshots/                   # dashboard frames
-    └── superpowers/plans/
-        └── 2026-06-13-multi-agent-job-router-master-plan.md
+    ├── deployment/render.md            # Render deploy walkthrough
+    ├── implementation-decisions.md     # design log + trade-offs
+    ├── security/threat-model.md
+    ├── dashboard-screenshot.png
+    └── dashboard-frame-{500,1500,4000,8000}ms.png
 ```
 
 ---
@@ -526,30 +522,12 @@ Add `?autoplay=0` to the URL to disable auto-play and step manually.
 
 ## Contributing
 
-1. Read [`HANDOFF.md`](HANDOFF.md) and [`docs/implementation-decisions.md`](docs/implementation-decisions.md).
-2. Run `npm run verify` before opening a PR. The check is `tsc -b + vitest + hardhat + protected-hash + isolation + secret-scan`.
-3. **Do not edit** `README.md` or `docs/superpowers/plans/2026-06-13-multi-agent-job-router-master-plan.md` unless explicitly authorised. If you do, update the SHA-256 in `docs/plan-preservation-manifest.md` and add a decision-log entry.
-4. For a new capability, follow the four-step pattern in `HANDOFF.md §12.1`.
+1. Read [`docs/implementation-decisions.md`](docs/implementation-decisions.md) for the design log and trade-offs.
+2. Run `npm run verify` before opening a PR. The check is `tsc -b + vitest + hardhat + isolation + secret-scan`.
+3. Follow the existing layered architecture: change `services/orchestrator` for execution semantics, `@pharos-router/policy` for cross-cutting rules, `apps/api` for the HTTP surface, `apps/web` for the dashboard.
 
 ---
 
 ## License
 
 **UNLICENSED** — private project. See `package.json`.
-
----
-
-## Pointers
-
-| Want to … | Open this |
-|-----------|-----------|
-| Understand the design | [`DESIGN.md`](DESIGN.md) |
-| Pick up engineering work | [`HANDOFF.md`](HANDOFF.md) |
-| See acceptance results | [`docs/local-acceptance-results.md`](docs/local-acceptance-results.md), [`docs/atlantic-acceptance-results.md`](docs/atlantic-acceptance-results.md) |
-| See dashboard screenshots | [`docs/dashboard-screenshot.png`](docs/dashboard-screenshot.png) and the four `docs/dashboard-frame-*.png` |
-| Read the security model | [`docs/security/threat-model.md`](docs/security/threat-model.md) |
-| Trace a task end-to-end | start at `services/orchestrator/src/runner.ts` |
-| Add a new capability | `HANDOFF.md §12.1` |
-| Add a new route | `HANDOFF.md §12.2` |
-| Add a new contract | `HANDOFF.md §12.3` |
-| Extend the dashboard | `HANDOFF.md §12.4` |

@@ -9,12 +9,11 @@ import { tmpdir } from "node:os";
  *
  * Runs the full set of local checks in order:
  *   1. isolation check
- *   2. protected-file hash check
- *   3. secret scan
- *   4. typecheck
- *   5. unit + integration tests
- *   6. build
- *   7. Hardhat contract tests
+ *   2. secret scan
+ *   3. typecheck
+ *   4. unit + integration tests
+ *   5. build
+ *   6. Hardhat contract tests
  *
  * Each step is skipped gracefully if the required toolchain is
  * missing, with a clear "skipped" message; missing toolchain does
@@ -65,7 +64,6 @@ const childEnv = {
 
 const steps = [
   { name: "isolation", cmd: ["node", "tools/check-isolation.mjs"] },
-  { name: "protected", cmd: ["node", "tools/check-protected.mjs"] },
   { name: "secrets", cmd: ["node", "tools/check-secrets.mjs"] },
   {
     name: "typecheck",

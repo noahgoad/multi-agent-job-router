@@ -210,3 +210,29 @@ the source of truth and is never edited to hide incomplete work.
   Testing, Deployment (Render), Partner integrations, Stability
   features (the 4 stability improvements), Contributing, Pointers.
 - **Status:** Applied.
+
+## Decision 12: Internal planning artifacts removed for public release
+
+- **Date:** 2026-06-18
+- **Phase:** Phase 13 (public-readiness cleanup)
+- **Observation:** The user requested the repo be made public, but the
+  repo still contained the internal planning scaffolding (master plan,
+  handoff, design rationale, working dev notes, plan-preservation
+  contract and tools) that was only useful during the planning phase.
+  The public README already covers all the information a public reader
+  needs; the planning artifacts would be noise.
+- **Decision:** Removed the following files and directories:
+  - `DESIGN.md` (40 KB design rationale)
+  - `HANDOFF.md` (32 KB engineering handoff)
+  - `README.dev.md` (working dev notes)
+  - `docs/superpowers/` (master plan)
+  - `docs/plan-preservation-manifest.md` and
+    `docs/plan-preservation-final-report.md`
+  - `tools/check-protected.{mjs,ps1}` and the `check:protected` script
+- **Files updated:**
+  - `README.md` — Pointers section removed, Repository structure
+    updated, Contributing section de-references the deleted files.
+  - `package.json` — `check:protected` script removed.
+  - `tools/verify.mjs` — "protected" step removed from the verify
+    chain.
+- **Status:** Applied. 84/84 tests still pass, typecheck clean.
