@@ -4,7 +4,7 @@
 
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![License: UNLICENSED](https://img.shields.io/badge/license-UNLICENSED-lightgrey)](#license)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-84%2F84%20pass-brightgreen)](#testing)
 [![Workspaces](https://img.shields.io/badge/npm%20workspaces-11-blueviolet)](#repository-structure)
 
@@ -530,4 +530,4 @@ Add `?autoplay=0` to the URL to disable auto-play and step manually.
 
 ## License
 
-**UNLICENSED** — private project. See `package.json`.
+**MIT** — see [`LICENSE`](LICENSE). Free to use, modify, and distribute, including for commercial purposes, as long as the copyright notice is preserved. No warranty.

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Coordination layer that decomposes approved jobs into bounded tasks, selects qualified agents, verifies intermediate results, and produces verifiable Pharos receipts.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20.0.0"
