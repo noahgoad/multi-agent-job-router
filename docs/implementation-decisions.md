@@ -182,3 +182,31 @@ the source of truth and is never edited to hide incomplete work.
   user must run on a workstation. The protected plan-preservation
   checks, isolation checks, and dry-run scripts are executable in
   the sandbox.
+
+## Decision 11: README.md rewritten to production quality
+
+- **Date:** 2026-06-18
+- **Phase:** Phase 12 (post-acceptance, pre-public-deploy)
+- **Observation:** The original `README.md` was a 26-line "planning
+  only" stub — accurate at planning time but no longer representative
+  of the implemented, 84/84-test-passing system. The user explicitly
+  requested a professional rewrite with structure diagrams, flow
+  diagrams, and full project information in preparation for a public
+  GitHub repo + Render deployment.
+- **Decision:** `README.md` was rewritten in place (per the
+  plan-preservation policy: "Protected files may be changed only if
+  the user explicitly names the exact protected file and the exact
+  modification in a later message" — the user named `README.md` and
+  asked for a professional rewrite). The new SHA-256 is recorded in
+  `docs/plan-preservation-manifest.md`. The master plan at
+  `docs/superpowers/plans/2026-06-13-multi-agent-job-router-master-plan.md`
+  was NOT touched.
+- **Old hash:** `252D88E32BA7DB0F3A1B2CD61905A38AA86FF858A36B825BE3A170196C4AE26F`
+- **New hash:** `9166F6594BCA7DAF6FC260E9C8A6659923575C1FA91039332783BA004B61A3F8`
+- **Sections added:** Live Demo, What it does, Architecture diagram
+  (mermaid graph TB), How a job flows (sequenceDiagram +
+  stateDiagram-v2), Repository structure (annotated tree), Tech
+  stack, Quick start, API reference, Configuration, Security posture,
+  Testing, Deployment (Render), Partner integrations, Stability
+  features (the 4 stability improvements), Contributing, Pointers.
+- **Status:** Applied.

@@ -9,7 +9,7 @@ replaced, formatted, or modified in any way.
 
 | # | Path                                                                                                            | SHA-256                                                             |
 |---|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| 1 | `README.md`                                                                                                     | `252D88E32BA7DB0F3A1B2CD61905A38AA86FF858A36B825BE3A170196C4AE26F`    |
+| 1 | `README.md`                                                                                                     | `9166F6594BCA7DAF6FC260E9C8A6659923575C1FA91039332783BA004B61A3F8`    |
 | 2 | `docs\superpowers\plans\2026-06-13-multi-agent-job-router-master-plan.md`                                       | `84B02585C94155E32F3E3F7564CCA881284F17B20A10B741D7B5D7061AEE5AD1`    |
 
 ## Verification Procedure
