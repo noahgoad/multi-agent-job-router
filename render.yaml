@@ -1,0 +1,93 @@
+# Render Blueprint for the Pharos Multi-Agent Job Router
+#
+# This file lets Render spin up both the API (Web Service) and the
+# dashboard (Static Site) from a single click.
+#
+# How to use:
+#   1. Push this repo to GitHub (already done).
+#   2. Sign in to https://render.com with GitHub.
+#   3. New + → Blueprint → connect the repo → Apply.
+#   4. Render reads this file, creates both services, builds, and
+#      gives you two URLs:
+#         - https://pharos-router-api.onrender.com
+#         - https://pharos-router-web.onrender.com
+#   5. Open the web URL with ?authToken=<the token from step 6> to
+#      seed the demo job.
+#
+# Variables generated at apply time:
+#   - PHAROS_ROUTER_AUTH_TOKEN is a 32-byte hex secret stored in the
+#     Render dashboard; it is the only thing the web needs to know to
+#     call the API. There is no "forgot password" — if you lose it,
+#     reset it in the dashboard and push a no-op commit to retrigger
+#     the build.
+#
+# CORS:
+#   CORS_ORIGINS is pinned to the web service's public URL. If you
+#   rename the web service, update this value.
+#
+# Persistence:
+#   /var/data is a 1 GB persistent disk that survives Web Service
+#   restarts. The API stores jobs.json there. On free tier the
+#   service sleeps after 15 min idle; the disk is preserved across
+#   sleeps, so the next wake sees the same job state.
+
+services:
+  # ---------- API ----------
+  - type: web
+    name: pharos-router-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: node apps/api/dist/src/main.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PHAROS_ROUTER_DEMO
+        value: "1"
+      - key: PHAROS_ROUTER_DATA_DIR
+        value: /var/data
+      - key: PHAROS_ROUTER_AUTH_TOKEN
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://pharos-router-web.onrender.com
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
+      - key: PHAROS_CHAIN_ID
+        value: "688689"
+    disk:
+      name: pharos-data
+      mountPath: /var/data
+      sizeGB: 1
+
+  # ---------- Web ----------
+  - type: static_site
+    name: pharos-router-web
+    plan: free
+    branch: main
+    buildCommand: |
+      npm ci &&
+      npm run build &&
+      cd apps/web &&
+      npm install &&
+      npm run build
+    staticPublishPath: apps/web/dist
+    autoDeploy: true
+    envVars:
+      # Vite bakes VITE_* into the bundle at build time. We point it at
+      # the API service's public URL so the deployed dashboard knows
+      # where to POST.
+      - key: VITE_API_BASE
+        fromService:
+          type: web
+          name: pharos-router-api
+          property: hostUrl
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

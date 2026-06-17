@@ -79,6 +79,24 @@ export const EXPLORER_URL =
   (typeof process !== "undefined" && process.env?.PHAROS_EXPLORER_URL) ||
   "https://atlantic.pharosscan.xyz";
 
+/**
+ * Default API base URL for the dashboard. Resolved at build time via
+ * the `VITE_API_BASE` env var (Vite exposes any `VITE_*` env var to
+ * client code; the value is baked into the bundle, so it has to be
+ * set when the web app is built, not at runtime).
+ *
+ * Falls back to the local dev server so `npm run dev` still works
+ * with no extra config.
+ */
+// Vite injects `import.meta.env.VITE_API_BASE` as a string at build
+// time. Using `as string | undefined` keeps the cast honest — the
+// value really is undefined when the env var is not set, in which
+// case the `??` chain falls through to the local dev default.
+const RUNTIME_BASE_URL =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: Record<string, string> }).env?.VITE_API_BASE) ||
+  undefined;
+
 // Sidebar nav items — declared at module scope so `DashboardLoaded`
 // can look up a label by id (for the "coming soon" toast) without
 // re-creating the same list inside `Sidebar`.
@@ -101,7 +119,7 @@ export interface DashboardProps {
 }
 
 export function Dashboard({
-  baseUrl = "http://127.0.0.1:8787",
+  baseUrl = RUNTIME_BASE_URL ?? "http://127.0.0.1:8787",
   jobId = "demo",
   authToken = "dev-token",
 }: DashboardProps) {
