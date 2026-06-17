@@ -236,3 +236,28 @@ the source of truth and is never edited to hide incomplete work.
   - `tools/verify.mjs` — "protected" step removed from the verify
     chain.
 - **Status:** Applied. 84/84 tests still pass, typecheck clean.
+
+## Decision 13: Dashboard deployed as Node Web Service (not Static Site)
+
+- **Date:** 2026-06-18
+- **Phase:** Phase 13 (deploy on Render)
+- **Observation:** The first `render.yaml` declared the dashboard as
+  `type: static` and was rejected by Render with `unknown type 'static'`.
+  The same error was returned when the type was changed to
+  `static_site`. Render Blueprints do not support static sites via
+  YAML at all; static sites are only creatable through the dashboard.
+- **Decision:** Added `apps/web/serve.mjs`, a tiny dependency-free
+  Node static file server with SPA fallback (any unknown path returns
+  `index.html`). The dashboard is now declared in `render.yaml` as a
+  regular `type: web` Node service that runs `node apps/web/serve.mjs`
+  after the Vite build. The runtime is identical to a Render Static
+  Site for this workload: read-only, no backend, low memory, no
+  external dependencies.
+- **Files added:** `apps/web/serve.mjs` (110 lines, zero dependencies)
+- **Files updated:** `render.yaml` (web service uses `serve.mjs` and
+  `npx vite build` for the bundle), `docs/deployment/render.md` (note
+  the change with a manual-static-site fallback).
+- **Verified:** `serve.mjs` serves `/`, hashed assets, and SPA
+  fallbacks correctly. Path-traversal attempts (`/../etc/passwd`)
+  safely fall back to `index.html`. Local smoke test via curl.
+- **Status:** Applied.

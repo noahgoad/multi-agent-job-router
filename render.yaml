@@ -66,17 +66,25 @@ services:
       sizeGB: 1
 
   # ---------- Web ----------
-  - type: static
+  # Note: Render Blueprints do not support static sites via YAML; the
+  # `static` type is rejected with "unknown type". We deploy the
+  # dashboard as a regular Node Web Service that serves the Vite
+  # build output from `apps/web/dist/` (see `apps/web/serve.mjs`).
+  # The runtime is identical to a Render Static Site for this
+  # workload (read-only, no backend).
+  - type: web
     name: pharos-router-web
+    runtime: node
     plan: free
+    region: oregon
     branch: main
     buildCommand: |
       npm ci &&
       npm run build &&
       cd apps/web &&
-      npm install &&
-      npm run build
-    staticPublishPath: apps/web/dist
+      npx vite build
+    startCommand: node apps/web/serve.mjs
+    healthCheckPath: /
     autoDeploy: true
     envVars:
       # Vite bakes VITE_* into the bundle at build time. We point it at
@@ -87,7 +95,5 @@ services:
           type: web
           name: pharos-router-api
           property: hostUrl
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - key: NODE_ENV
+        value: production

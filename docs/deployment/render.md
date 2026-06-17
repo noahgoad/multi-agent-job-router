@@ -85,14 +85,22 @@ curl https://pharos-router-api.onrender.com/healthz
 
 ## 3. Create the Web Static Site
 
-In the Render dashboard: **New + → Static Site → Connect to the same repo**.
+> **Why this looks different from the API section:** Render Blueprints cannot declare a `static` service — the type is rejected with `unknown type 'static'`. To keep the Blueprint 1-click, `render.yaml` declares the dashboard as a regular Node Web Service that runs `apps/web/serve.mjs`, a tiny dependency-free static file server with SPA fallback. The runtime is functionally identical to a Render Static Site for this workload (read-only, no backend, low memory).
+>
+> If you'd rather use a true Render Static Site, create it manually: **New + → Static Site → connect the same repo → Build command: `npm ci && npm run build && cd apps/web && npx vite build` → Publish directory: `apps/web/dist`**.
+
+In the Render dashboard: **New + → Web Service → connect the same repo**.
 
 | Field | Value |
 |-------|-------|
 | Name | `pharos-router-web` |
+| Region | `Oregon` (must match the API for `fromService` to work) |
 | Branch | `main` |
-| Build command | `npm ci && npm run build && cd apps/web && npm run build` |
-| Publish directory | `apps/web/dist` |
+| Runtime | `Node` |
+| Build command | `npm ci && npm run build && cd apps/web && npx vite build` |
+| Start command | `node apps/web/serve.mjs` |
+| Instance type | `Free` |
+| Health check path | `/` |
 
 ### Environment variables (build-time)
 

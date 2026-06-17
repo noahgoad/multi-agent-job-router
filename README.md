@@ -247,6 +247,7 @@ pharos-multi-agent-job-router/
 │   │   └── src/storage.ts             # atomic write FileStorage
 │   ├── web/                           # React + Vite dashboard
 │   │   ├── src/App.tsx                # DashboardLoaded + runAuto
+│   │   ├── serve.mjs                  # tiny static file server (deploy)
 │   │   ├── e2e/dashboard.spec.ts      # Playwright
 │   │   └── vite.config.ts
 │   └── mcp/                           # MCP server (stdio)
@@ -445,32 +446,12 @@ E2E: `apps/web/e2e/dashboard.spec.ts` (Playwright).
 
 ## Deployment
 
-The project ships with everything needed to deploy on **Render** as two services:
+The project ships with everything needed to deploy on **Render** as two services via a single Blueprint:
 
 - `apps/api` → **Render Web Service** (Node), with a persistent disk mounted at `/var/data`
-- `apps/web` → **Render Static Site**, rebuilt on every push
+- `apps/web` → **Render Web Service** (Node) running `apps/web/serve.mjs`, a dependency-free static file server
 
-### Render Web Service — `pharos-router-api`
-
-| Field | Value |
-|-------|-------|
-| Runtime | `node` |
-| Build command | `npm ci && npm run build` |
-| Start command | `PHAROS_ROUTER_DATA_DIR=/var/data PHAROS_ROUTER_AUTH_TOKEN=<random> node apps/api/dist/src/main.js` |
-| Health check path | `/healthz` |
-| Disk | `/var/data` 1 GB (free) |
-| Env vars | `PHAROS_ROUTER_DATA_DIR=/var/data`, `PHAROS_ROUTER_AUTH_TOKEN=<random>` |
-
-### Render Static Site — `pharos-router-web`
-
-| Field | Value |
-|-------|-------|
-| Build command | `npm ci && npm run build && cd apps/web && npm run build` |
-| Publish directory | `apps/web/dist` |
-| Rewrite rule | `/* → /index.html` |
-| Env var (build) | `VITE_API_BASE=<api-url>` |
-
-> See [`docs/deployment/render.md`](docs/deployment/render.md) for the full step-by-step.
+> Render Blueprints cannot declare `static` sites via YAML. We deploy the dashboard as a regular Node Web Service that serves its own Vite build output — identical runtime to a Render Static Site for this read-only workload. See [`docs/deployment/render.md`](docs/deployment/render.md) for the full step-by-step.
 
 ---
 
