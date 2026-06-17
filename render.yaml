@@ -39,10 +39,15 @@ services:
   - type: web
     name: pharos-router-api
     runtime: node
+    nodeVersion: 20.18.0
     plan: free
     region: oregon
     branch: main
-    buildCommand: npm ci && npm run build
+    # `--include=dev` is critical: Render's `NODE_ENV=production` env
+    # var (set below) propagates into the build step and causes `npm
+    # ci` to skip devDependencies. We need them at build time
+    # (typescript, vitest, vite, etc.) so the override is mandatory.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node apps/api/dist/src/main.js
     healthCheckPath: /healthz
     autoDeploy: true
@@ -80,11 +85,16 @@ services:
   - type: web
     name: pharos-router-web
     runtime: node
+    nodeVersion: 20.18.0
     plan: free
     region: oregon
     branch: main
+    # `--include=dev` is critical: Render's `NODE_ENV=production` env
+    # var propagates into the build step and causes `npm ci` to skip
+    # devDependencies. Vite is in apps/web's devDependencies and must
+    # be installed for the final `npx vite build` step.
     buildCommand: |
-      npm ci &&
+      npm ci --include=dev &&
       npm run build &&
       cd apps/web &&
       npx vite build
