@@ -194,7 +194,15 @@ export async function buildServer(
   const artifact = options.deps?.artifact ?? new ArtifactStore();
   const now = options.deps?.now ?? (() => Math.floor(Date.now() / 1000));
   const humanApprove = options.deps?.humanApprove ?? (async () => true);
-  const deps: AppDeps = { store, registry, artifact, humanApprove, now };
+  const atlantic = options.deps?.atlantic;
+  const deps: AppDeps = {
+    store,
+    registry,
+    artifact,
+    humanApprove,
+    now,
+    ...(atlantic ? { atlantic } : {}),
+  };
   const app = buildApp(deps);
 
   // Safe error mapping: never echo stack traces or secrets.

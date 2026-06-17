@@ -21,6 +21,7 @@ import {
   type Hash,
 } from "@pharos-router/workflow";
 import { AgentSkillRegistry } from "@pharos-router/registry";
+import { PharosAtlanticClient } from "@pharos-router/contracts";
 import { startServer } from "./server.js";
 import { JobStore } from "./app.js";
 import { FileStorage } from "./storage.js";
@@ -156,6 +157,38 @@ const fileStorage = dataDir
   ? new FileStorage(pathJoin(dataDir, "jobs.json"))
   : null;
 
+// Wire a Pharos Atlantic client when all four PHAROS_* env vars are
+// set. When configured, the API anchors assignment and final job
+// receipts to the JobRouterRegistry contract. Missing any of the
+// four variables silently disables on-chain anchoring (the API still
+// works locally, the dashboard still renders, the receipt is just
+// not anchored on chain).
+const atlanticClient = (() => {
+  const rpcUrl = process.env.PHAROS_RPC_URL;
+  const chainId = Number(process.env.PHAROS_CHAIN_ID);
+  const registryAddress = process.env.PHAROS_REGISTRY_ADDRESS as
+    | `0x${string}`
+    | undefined;
+  const deployerPrivateKey = process.env.ROUTER_DEPLOYER_PRIVATE_KEY as
+    | `0x${string}`
+    | undefined;
+  if (!rpcUrl || !chainId || !registryAddress || !deployerPrivateKey) {
+    return null;
+  }
+  try {
+    return new PharosAtlanticClient({
+      rpcUrl,
+      chainId,
+      registryAddress,
+      deployerPrivateKey,
+    });
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("[atlantic] failed to construct client:", err);
+    return null;
+  }
+})();
+
 const deps =
   process.env.PHAROS_ROUTER_DEMO === "1"
     ? {
@@ -164,6 +197,7 @@ const deps =
         artifact: new ArtifactStore(),
         humanApprove: async () => true,
         now: () => Math.floor(Date.now() / 1000),
+        ...(atlanticClient ? { atlantic: atlanticClient } : {}),
       }
     : undefined;
 
@@ -286,7 +320,9 @@ function autoSeedDemoIfEmpty() {
     job.approval = { approver: "auto-seed", approvedAt: now };
     store.save();
     // eslint-disable-next-line no-console
-    console.log(`[auto-seed] created + approved demo job "${spec.jobId}" (PLANNED)`);
+    console.log(
+      `[auto-seed] created + approved demo job "${spec.jobId}" (PLANNED)`
+    );
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("[auto-seed] failed to seed demo job:", err);
@@ -305,9 +341,16 @@ startServer({
     autoSeedDemoIfEmpty();
     // eslint-disable-next-line no-console
     console.log(`pharos-router API listening on ${url}`);
-    if (process.env.PHAROS_ROUTER_DEMO === "1") {
+    if (atlanticClient) {
       // eslint-disable-next-line no-console
-      console.log("demo mode: registry pre-seeded with agent-demo + skill");
+      console.log(
+        `[atlantic] anchoring receipts on chain id ${atlanticClient.chainId} via ${atlanticClient.registryAddress}`
+      );
+    } else if (process.env.PHAROS_ROUTER_DEMO === "1") {
+      // eslint-disable-next-line no-console
+      console.log(
+        "[atlantic] not configured (missing PHAROS_RPC_URL/PHAROS_REGISTRY_ADDRESS/ROUTER_DEPLOYER_PRIVATE_KEY); receipts are local-only"
+      );
     }
   })
   .catch((err) => {

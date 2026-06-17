@@ -68,6 +68,15 @@ services:
         value: production
       - key: PHAROS_CHAIN_ID
         value: "688689"
+      - key: PHAROS_RPC_URL
+        value: https://atlantic.dplabs-internal.com
+      - key: PHAROS_REGISTRY_ADDRESS
+        value: 0xb11191DE716B6933E1Efac359AE9C0287c16a187
+      # ROUTER_DEPLOYER_PRIVATE_KEY is a secret. Blueprint YAML cannot
+      # carry secrets (it would be committed to git), so the user
+      # sets it manually in the Render dashboard Environment tab
+      # after the first deploy. Render keeps dashboard-only env vars
+      # across syncs.
 
   # ---------- Web ----------
   # Note: Render Blueprints do not support static sites via YAML; the

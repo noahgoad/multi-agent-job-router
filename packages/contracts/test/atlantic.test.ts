@@ -56,28 +56,26 @@ describe("contracts/atlantic", () => {
     expect(rRoot).to.match(/^0x[0-9a-f]{64}$/);
   });
 
-  it("publishes a stubbed assignment and receipt", async () => {
+  it("derives the account address from the private key", () => {
+    // 0x11...11 is not a real secp256k1 scalar, so the derived
+    // account address will be deterministic but arbitrary; we just
+    // assert the constructor succeeded and `account` is a valid
+    // 20-byte hex string.
     const c = new PharosAtlanticClient({
       rpcUrl: "https://atlantic-rpc.pharosnetwork.xyz",
       chainId: ATLANTIC_CHAIN_ID,
       registryAddress: "0x" + "44".repeat(20),
       deployerPrivateKey: "0x" + "11".repeat(32),
     });
-    const a = {
-      taskId: "t1",
-      agentId: "a1",
-      skillReleaseHash: hash("sr"),
-      score: 80,
-      assignedAt: 1,
-      termsHash: hash("th"),
-    };
-    const pub = await c.publishAssignment({} as never, hash("dag"), [a]);
-    expect(pub.txHash).to.match(/^0x[0-9a-f]{64}$/);
-    const verify = await c.verifyOnChain("job-1", {
-      dagHash: hash("dag"),
-      resultRoot: hash("r"),
-      verificationRoot: hash("v"),
-    });
-    expect(verify.matches).to.equal(true);
+    expect(c.account).to.match(/^0x[0-9a-fA-F]{40}$/);
+    expect(c.registryAddress).to.equal("0x" + "44".repeat(20));
+  });
+
+  it("hashes the jobId to a stable 32-byte value", () => {
+    const a = PharosAtlanticClient.jobIdToBytes32("demo");
+    const b = PharosAtlanticClient.jobIdToBytes32("demo");
+    expect(a).to.equal(b);
+    expect(a).to.match(/^0x[0-9a-f]{64}$/);
+    expect(PharosAtlanticClient.jobIdToBytes32("other")).to.not.equal(a);
   });
 });

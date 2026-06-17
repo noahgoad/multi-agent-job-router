@@ -18,6 +18,8 @@ import { ArtifactStore } from "@pharos-router/workflow";
 import {
   computeAssignmentRoot,
   computeResultRoot,
+  PharosAtlanticClient,
+  ATLANTIC_CHAIN_ID,
 } from "@pharos-router/contracts";
 import type { FileStorage } from "./storage.js";
 
@@ -113,12 +115,20 @@ export interface AppDeps {
   readonly artifact: ArtifactStore;
   readonly humanApprove: (jobId: string, taskId: string) => Promise<boolean>;
   readonly now: () => number;
+  /**
+   * Optional Pharos Atlantic client. When provided, the API anchors
+   * assignment and final job receipts to the JobRouterRegistry
+   * contract. When omitted (e.g. local dev without a deployer key),
+   * receipts are still produced locally with the chain id and a
+   * placeholder registry address so the dashboard keeps working.
+   */
+  readonly atlantic?: PharosAtlanticClient;
 }
 
 export const APP_DEPS_KEY = Symbol("pharos-router/app-deps");
 
 export function buildApp(deps: AppDeps) {
-  const { store, registry, artifact, humanApprove, now } = deps;
+  const { store, registry, artifact, humanApprove, now, atlantic } = deps;
 
   return {
     store,
@@ -160,7 +170,8 @@ export function buildApp(deps: AppDeps) {
       const r = await o.run();
       j.results.push(...r.results);
       for (const [k, v] of Object.entries(r.states)) j.state.set(k, v);
-      finalizeReceipt(j, r, now);
+      finalizeReceipt(j, r, now, atlantic);
+      if (atlantic) await anchorOnChain(j, atlantic);
       store.save();
       return view(j);
     },
@@ -234,7 +245,8 @@ export function buildApp(deps: AppDeps) {
       const r = await o.run();
       j.results.push(...r.results);
       for (const [k, v] of Object.entries(r.states)) j.state.set(k, v);
-      finalizeReceipt(j, r, now);
+      finalizeReceipt(j, r, now, atlantic);
+      if (atlantic) await anchorOnChain(j, atlantic);
       store.save();
       return view(j);
     },
@@ -419,13 +431,17 @@ function scenarioWorkerHooks(
 function finalizeReceipt(
   j: StoredJob,
   r: { results: readonly TaskResult[]; totalSpent: bigint },
-  now: () => number
+  now: () => number,
+  atlantic?: PharosAtlanticClient
 ): void {
   const agg = aggregate({
     jobId: j.spec.jobId,
     results: r.results,
     verifications: j.verifications,
   });
+  const registryAddress = (atlantic?.registryAddress ??
+    "0x" + "44".repeat(20)) as `0x${string}`;
+  const receiptTxHash = ("0x" + "55".repeat(32)) as Hash;
   j.receipt = {
     jobId: j.spec.jobId,
     dagHash: j.dagHash,
@@ -434,8 +450,70 @@ function finalizeReceipt(
     verificationRoot: agg.verificationRoot,
     completedAt: now(),
     totalSpentMicrousd: r.totalSpent,
-    chainId: 688689,
-    registryAddress: ("0x" + "44".repeat(20)) as `0x${string}`,
-    receiptTxHash: ("0x" + "55".repeat(32)) as Hash,
+    chainId: ATLANTIC_CHAIN_ID,
+    registryAddress,
+    receiptTxHash,
   };
+}
+
+/**
+ * Anchor a job's assignment root and final receipt on Pharos Atlantic.
+ * Called from `executeJob` / `playJob` after the orchestrator returns
+ * its results. On success, the stored receipt is updated with the
+ * real on-chain tx hashes and registry address. On failure the local
+ * receipt is kept (so the dashboard still shows the completed job)
+ * and the error is logged so an operator can re-anchor manually.
+ */
+async function anchorOnChain(
+  j: StoredJob,
+  atlantic: PharosAtlanticClient
+): Promise<{ publishAssignmentTx?: Hash; finalizeReceiptTx?: Hash }> {
+  if (!atlantic) return {};
+  // eslint-disable-next-line no-console
+  console.log(
+    `[atlantic] anchoring jobId=${j.spec.jobId} (${j.assignments.length} assignments) on chain ${atlantic.chainId}`
+  );
+  let publishAssignmentTx: Hash | undefined;
+  let finalizeReceiptTx: Hash | undefined;
+  try {
+    const { txHash: assignmentTx } = await atlantic.publishAssignment(
+      j.spec,
+      j.dagHash,
+      j.assignments
+    );
+    publishAssignmentTx = assignmentTx;
+    // eslint-disable-next-line no-console
+    console.log(
+      `[atlantic] recordAssignment tx=${assignmentTx} jobId=${j.spec.jobId}`
+    );
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[atlantic] recordAssignment failed for jobId=${j.spec.jobId}:`,
+      err
+    );
+  }
+  if (j.receipt) {
+    try {
+      const { txHash: receiptTx } = await atlantic.publishReceipt(
+        j.spec.jobId,
+        j.receipt
+      );
+      finalizeReceiptTx = receiptTx;
+      // Update the stored receipt with the real on-chain values.
+      j.receipt.registryAddress = atlantic.registryAddress;
+      j.receipt.receiptTxHash = receiptTx;
+      // eslint-disable-next-line no-console
+      console.log(
+        `[atlantic] finalizeReceipt tx=${receiptTx} jobId=${j.spec.jobId}`
+      );
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[atlantic] finalizeReceipt failed for jobId=${j.spec.jobId}:`,
+        err
+      );
+    }
+  }
+  return { publishAssignmentTx, finalizeReceiptTx };
 }
