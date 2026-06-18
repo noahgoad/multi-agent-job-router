@@ -1,0 +1,982 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Pharos Multi-Agent Job Router — Intro (EN)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #07080c;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+        color: #f4f4f5;
+      }
+      code,
+      pre,
+      .mono {
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+      }
+      :root {
+        --bg: #07080c;
+        --bg-elev: #0d0f15;
+        --bg-card: #131520;
+        --bg-card-2: #1a1d2c;
+        --line: #1f2230;
+        --line-2: #2a2e40;
+        --text: #f4f4f5;
+        --text-dim: #9ca3af;
+        --text-faint: #52596b;
+        --accent: #6ee7b7;
+        --accent-2: #38bdf8;
+        --accent-3: #fbbf24;
+        --danger: #f87171;
+        --grad-1: linear-gradient(135deg, #6ee7b7 0%, #38bdf8 100%);
+        --grad-2: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+        --grad-3: linear-gradient(135deg, #fbbf24 0%, #f87171 100%);
+      }
+      /* ───── background layers (always on) ───── */
+      .bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            ellipse at 18% 28%,
+            rgba(56, 189, 248, 0.18) 0%,
+            transparent 45%
+          ),
+          radial-gradient(
+            ellipse at 82% 72%,
+            rgba(110, 231, 183, 0.15) 0%,
+            transparent 45%
+          ),
+          radial-gradient(
+            ellipse at 50% 95%,
+            rgba(129, 140, 248, 0.10) 0%,
+            transparent 55%
+          );
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.035) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.035) 1px,
+            transparent 1px
+          );
+        background-size: 80px 80px;
+        mask-image: radial-gradient(
+          ellipse at center,
+          black 25%,
+          transparent 80%
+        );
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      /* Scanline that travels top → bottom continuously */
+      .scanline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent) 50%,
+          transparent
+        );
+        opacity: 0.7;
+        box-shadow: 0 0 18px var(--accent);
+      }
+      /* Orbiting dot near the corner — accent */
+      .orbit {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 1920px;
+        height: 1080px;
+        pointer-events: none;
+      }
+      .orbit .particle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 12px;
+        height: 12px;
+        margin: -6px 0 0 -6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 16px var(--accent);
+      }
+      /* Eyebrow (top-left persistent badge) */
+      .eyebrow {
+        position: absolute;
+        top: 60px;
+        left: 80px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .eyebrow .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 16px var(--accent);
+      }
+      .eyebrow .chain {
+        color: var(--text-faint);
+      }
+      /* Footer (bottom) */
+      .footer {
+        position: absolute;
+        bottom: 60px;
+        left: 80px;
+        right: 80px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 18px;
+        color: var(--text-faint);
+        letter-spacing: 0.05em;
+      }
+      .footer .repo {
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        color: var(--text-dim);
+      }
+      /* ───── stage for each scene ───── */
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 160px 180px;
+      }
+      .card {
+        position: relative;
+        width: 1560px;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 72px 88px;
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      }
+      .card .label {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card .label .num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: rgba(110, 231, 183, 0.12);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        font-size: 16px;
+      }
+      .card h1 {
+        font-size: 92px;
+        font-weight: 700;
+        line-height: 1.05;
+        background: var(--grad-1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .card h2 {
+        font-size: 60px;
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--text);
+      }
+      .card p {
+        font-size: 32px;
+        line-height: 1.5;
+        color: var(--text-dim);
+        font-weight: 400;
+      }
+      .card .accent { color: var(--accent); font-weight: 600; }
+      .card .accent-2 { color: var(--accent-2); font-weight: 600; }
+      .card .accent-3 { color: var(--accent-3); font-weight: 600; }
+      .card .mono { font-family: "Consolas", "Monaco", "Courier New", monospace; color: var(--accent-2); }
+      /* Three-question block for the problem scene */
+      .questions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .question {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 24px 28px;
+        position: relative;
+      }
+      .question .qmark {
+        font-size: 64px;
+        line-height: 1;
+        font-weight: 800;
+        background: var(--grad-3);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        margin-bottom: 12px;
+      }
+      .question .qword {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+      .question .qdesc {
+        font-size: 16px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+      /* Hex-pack grid for the architecture scene */
+      .pkg-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .pkg {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 22px 24px;
+        position: relative;
+        overflow: hidden;
+      }
+      .pkg::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          135deg,
+          transparent 0%,
+          rgba(110, 231, 183, 0.06) 100%
+        );
+        pointer-events: none;
+      }
+      .pkg .pkg-name {
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 4px;
+      }
+      .pkg .pkg-role {
+        font-size: 14px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+      /* Workflow 5-step strip */
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 14px;
+        margin-top: 20px;
+        position: relative;
+      }
+      .step {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 22px 20px;
+        position: relative;
+        text-align: center;
+      }
+      .step .num {
+        font-size: 14px;
+        color: var(--text-faint);
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        letter-spacing: 0.1em;
+        margin-bottom: 8px;
+      }
+      .step .name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .step .role {
+        font-size: 13px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+      .step.active {
+        border-color: var(--accent);
+        box-shadow: 0 0 32px rgba(110, 231, 183, 0.25);
+        background: var(--bg-card-2);
+      }
+      .step.active .name { color: var(--accent); }
+      /* Code window for the demo scene */
+      .code-win {
+        background: #0a0c12;
+        border: 1px solid var(--line-2);
+        border-radius: 14px;
+        padding: 24px 28px;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        font-size: 20px;
+        line-height: 1.55;
+        color: var(--text-dim);
+        white-space: pre-wrap;
+        margin-top: 16px;
+        position: relative;
+      }
+      .code-win::before {
+        content: "";
+        position: absolute;
+        top: 14px;
+        left: 14px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #f87171;
+        box-shadow: 18px 0 0 #fbbf24, 36px 0 0 #6ee7b7;
+      }
+      .code-win .ok { color: var(--accent); }
+      .code-win .tx { color: var(--accent-2); }
+      .code-win .k { color: var(--accent-3); }
+      /* Receipt card */
+      .receipt {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 28px 36px;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        font-size: 22px;
+        line-height: 1.7;
+      }
+      .receipt .k { color: var(--text-faint); display: inline-block; width: 200px; }
+      .receipt .v { color: var(--accent); }
+      .receipt .v-link { color: var(--accent-2); text-decoration: underline; }
+      /* Three closing statements */
+      .statements {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        margin-top: 8px;
+      }
+      .statement {
+        font-size: 56px;
+        font-weight: 700;
+        line-height: 1.1;
+        display: flex;
+        align-items: baseline;
+        gap: 24px;
+      }
+      .statement .dot-mark {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        margin-right: 4px;
+      }
+      .statement.s1 .dot-mark { background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+      .statement.s2 .dot-mark { background: var(--accent-2); box-shadow: 0 0 14px var(--accent-2); }
+      .statement.s3 .dot-mark { background: var(--accent-3); box-shadow: 0 0 14px var(--accent-3); }
+      .statement .text { color: var(--text); }
+      .cta {
+        margin-top: 28px;
+        padding: 24px 32px;
+        background: linear-gradient(
+          135deg,
+          rgba(110, 231, 183, 0.12) 0%,
+          rgba(56, 189, 248, 0.12) 100%
+        );
+        border: 1px solid var(--accent);
+        border-radius: 16px;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+        font-size: 28px;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .cta .arrow { color: var(--accent-2); font-size: 32px; }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="183"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- always-on background -->
+      <div class="bg"></div>
+      <div class="grid"></div>
+      <div class="frame"></div>
+
+      <!-- scanline sweeps top → bottom over 183s -->
+      <div
+        class="scanline clip"
+        data-start="0"
+        data-duration="183"
+        data-track-index="3"
+      ></div>
+
+      <!-- orbiting particle, traces a big loop on screen -->
+      <div class="orbit clip" data-start="0" data-duration="183" data-track-index="3">
+        <div class="particle" id="orbit-particle"></div>
+      </div>
+
+      <!-- persistent eyebrow + footer -->
+      <div
+        class="eyebrow clip"
+        data-start="0"
+        data-duration="183"
+        data-track-index="4"
+      >
+        <span class="dot"></span>
+        <span>Pharos Atlantic</span>
+        <span class="chain">/ multi-agent job router</span>
+      </div>
+      <div
+        class="footer clip"
+        data-start="0"
+        data-duration="183"
+        data-track-index="4"
+      >
+        <span class="repo">github.com/noahgoad/multi-agent-job-router</span>
+        <span>decentralized coordination</span>
+      </div>
+
+      <!-- ============== SCENE 1 — Hook (0–15.8s) ============== -->
+      <div
+        class="clip"
+        id="scene-1"
+        data-start="0"
+        data-duration="15.8"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-1">
+            <span class="label" id="label-1">
+              <span class="num">01</span>
+              Introduction
+            </span>
+            <h1 id="title-1">A coordinator for AI agents.</h1>
+            <p id="para-1">
+              Anchored on the <span class="accent">Pharos Atlantic blockchain</span> —
+              transparent, verifiable, and decentralized from the first byte.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 2 — Problem (15.8–39.7s) ============== -->
+      <div
+        class="clip"
+        id="scene-2"
+        data-start="15.8"
+        data-duration="23.9"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-2">
+            <span class="label" id="label-2">
+              <span class="num">02</span>
+              The Problem
+            </span>
+            <h2 id="title-2">Three things break coordination today.</h2>
+            <div class="questions" id="questions-2">
+              <div class="question" id="q-1">
+                <div class="qmark">?</div>
+                <div class="qword">Trust</div>
+                <div class="qdesc">Which agent is reliable? Which is compromised?</div>
+              </div>
+              <div class="question" id="q-2">
+                <div class="qmark">?</div>
+                <div class="qword">Verify</div>
+                <div class="qdesc">How do you prove a result is right without re-running it?</div>
+              </div>
+              <div class="question" id="q-3">
+                <div class="qmark">?</div>
+                <div class="qword">Account</div>
+                <div class="qdesc">Who is on the hook when something goes sideways?</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 3 — Architecture (39.7–71.8s) ============== -->
+      <div
+        class="clip"
+        id="scene-3"
+        data-start="39.7"
+        data-duration="32.1"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-3">
+            <span class="label" id="label-3">
+              <span class="num">03</span>
+              Architecture
+            </span>
+            <h2 id="title-3">Six packages. Two services. One chain.</h2>
+            <p id="para-3">
+              Every layer is small, tested, and replaceable. Each does one job well.
+            </p>
+            <div class="pkg-grid" id="pkgs-3">
+              <div class="pkg" id="pkg-policy">
+                <div class="pkg-name">policy</div>
+                <div class="pkg-role">least-privilege + budget reserve</div>
+              </div>
+              <div class="pkg" id="pkg-workflow">
+                <div class="pkg-name">workflow</div>
+                <div class="pkg-role">spec → DAG compile</div>
+              </div>
+              <div class="pkg" id="pkg-registry">
+                <div class="pkg-name">registry</div>
+                <div class="pkg-role">CertiK skills + heartbeat</div>
+              </div>
+              <div class="pkg" id="pkg-routing">
+                <div class="pkg-name">routing</div>
+                <div class="pkg-role">capability × trust × cost × latency</div>
+              </div>
+              <div class="pkg" id="pkg-orchestrator">
+                <div class="pkg-name">orchestrator</div>
+                <div class="pkg-role">DAG walk + retry + HITL</div>
+              </div>
+              <div class="pkg" id="pkg-verifier">
+                <div class="pkg-name">verifier</div>
+                <div class="pkg-role">multi-method verdict</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 4 — Workflow (71.8–101.5s) ============== -->
+      <div
+        class="clip"
+        id="scene-4"
+        data-start="71.8"
+        data-duration="29.7"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-4">
+            <span class="label" id="label-4">
+              <span class="num">04</span>
+              Workflow
+            </span>
+            <h2 id="title-4">Five stages, end to end.</h2>
+            <div class="flow" id="flow-4">
+              <div class="step" id="step-1">
+                <div class="num">STAGE 01</div>
+                <div class="name">Compile</div>
+                <div class="role">spec → DAG</div>
+              </div>
+              <div class="step" id="step-2">
+                <div class="num">STAGE 02</div>
+                <div class="name">Route</div>
+                <div class="role">pick agents</div>
+              </div>
+              <div class="step" id="step-3">
+                <div class="num">STAGE 03</div>
+                <div class="name">Execute</div>
+                <div class="role">walk + HITL</div>
+              </div>
+              <div class="step" id="step-4">
+                <div class="num">STAGE 04</div>
+                <div class="name">Verify</div>
+                <div class="role">multi-method</div>
+              </div>
+              <div class="step" id="step-5">
+                <div class="num">STAGE 05</div>
+                <div class="name">Anchor</div>
+                <div class="role">on chain</div>
+              </div>
+            </div>
+            <p id="para-4">
+              Write and financial operations pause for a human-in-the-loop
+              approval. Disagreements between verifiers trigger bounded
+              retries. The receipt is the contract.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 5 — Demo (101.5–127.0s) ============== -->
+      <div
+        class="clip"
+        id="scene-5"
+        data-start="101.5"
+        data-duration="25.5"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-5">
+            <span class="label" id="label-5">
+              <span class="num">05</span>
+              Live Demo
+            </span>
+            <h2 id="title-5">A real run, end to end.</h2>
+            <div class="code-win" id="code-5">$ curl -X POST /jobs/demo/play
+  <span class="ok">t1</span>  ASSIGNED → RUNNING → VERIFIED
+  <span class="ok">t2</span>  ASSIGNED → RUNNING → VERIFIED
+  <span class="ok">t3</span>  ASSIGNED → RUNNING → VERIFIED
+  <span class="ok">t4</span>  ASSIGNED → RUNNING → VERIFIED
+<span class="k">→</span> recordAssignment  <span class="tx">tx=0x59ab…559</span>
+<span class="k">→</span> finalizeReceipt    <span class="tx">tx=0x532c…67f</span>
+<span class="ok">✓ isFinalized: true</span></div>
+            <p id="para-5">
+              Open the Pharos Atlantic explorer. Paste any receipt hash. See
+              the whole history, from the first task to the final anchor.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============== SCENE 6 — Closing (127.0–182.6s) ============== -->
+      <div
+        class="clip"
+        id="scene-6"
+        data-start="127.0"
+        data-duration="55.6"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card" id="card-6">
+            <span class="label" id="label-6">
+              <span class="num">06</span>
+              What it buys you
+            </span>
+            <div class="statements" id="statements-6">
+              <div class="statement s1" id="st-1">
+                <span class="dot-mark"></span>
+                <span class="text">Transparent where it counts.</span>
+              </div>
+              <div class="statement s2" id="st-2">
+                <span class="dot-mark"></span>
+                <span class="text">Verifiable by anyone, anywhere.</span>
+              </div>
+              <div class="statement s3" id="st-3">
+                <span class="dot-mark"></span>
+                <span class="text">Anchored not in trust, but in math.</span>
+              </div>
+            </div>
+            <div class="cta" id="cta-6">
+              <span>github.com/noahgoad/multi-agent-job-router</span>
+              <span class="arrow">→</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Narration track — English voice -->
+      <audio
+        data-start="0"
+        data-duration="183"
+        data-track-index="1"
+        src="assets/narration_en_full.wav"
+        preload="auto"
+      ></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Scanline sweeps top → bottom continuously
+      tl.to(".scanline", { y: 1080, duration: 183, ease: "none" }, 0);
+
+      // Orbiting particle — traces a big loop on screen. We use a
+      // small radius so it stays visible against the dark grid.
+      const orbit = document.querySelector("#orbit-particle");
+      if (orbit) {
+        tl.to(
+          orbit,
+          {
+            motionPath: {
+              path: [
+                { x: -800, y: -500 },
+                { x: 800, y: -500 },
+                { x: 800, y: 500 },
+                { x: -800, y: 500 },
+                { x: -800, y: -500 },
+              ],
+              curviness: 1.5,
+              autoRotate: false,
+            },
+            duration: 24,
+            repeat: 6,
+            ease: "power1.inOut",
+          },
+          0
+        );
+      }
+
+      // ───── scene transitions ─────
+      // Each scene's card lifts in, holds ~12s, then pushes out.
+      // The individual child elements stagger in for liveliness.
+      const sceneStarts = { 1: 0, 2: 15.8, 3: 39.7, 4: 71.8, 5: 101.5, 6: 127.0 };
+      const card1 = document.querySelector("#card-1");
+      const card2 = document.querySelector("#card-2");
+      const card3 = document.querySelector("#card-3");
+      const card4 = document.querySelector("#card-4");
+      const card5 = document.querySelector("#card-5");
+      const card6 = document.querySelector("#card-6");
+      const sceneCards = [card1, card2, card3, card4, card5, card6];
+      for (let i = 0; i < 6; i++) {
+        const start = sceneStarts[i + 1];
+        const card = sceneCards[i];
+        if (!card) continue;
+        gsap.set(card, { y: 80, opacity: 0 });
+        tl.to(
+          card,
+          { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" },
+          start
+        );
+        tl.to(
+          card,
+          { y: -50, opacity: 0, duration: 0.5, ease: "power2.in" },
+          start + (i === 5 ? 60 : 22)
+        );
+      }
+
+      // ───── scene 1: title + paragraph stagger in ─────
+      const title1 = document.querySelector("#title-1");
+      const para1 = document.querySelector("#para-1");
+      const label1 = document.querySelector("#label-1");
+      if (title1) {
+        gsap.set(title1, { y: 30, opacity: 0 });
+        tl.to(title1, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, 0.3);
+      }
+      if (para1) {
+        gsap.set(para1, { y: 20, opacity: 0 });
+        tl.to(para1, { y: 0, opacity: 1, duration: 0.6, ease: "power2.out" }, 1.2);
+      }
+
+      // ───── scene 2: three question cards stagger in ─────
+      const q1 = document.querySelector("#q-1");
+      const q2 = document.querySelector("#q-2");
+      const q3 = document.querySelector("#q-3");
+      [q1, q2, q3].forEach((q, i) => {
+        if (!q) return;
+        gsap.set(q, { y: 40, opacity: 0, scale: 0.96 });
+        tl.to(
+          q,
+          { y: 0, opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.4)" },
+          17.5 + i * 0.4
+        );
+      });
+      // The question mark glyphs pulse once
+      document.querySelectorAll("#questions-2 .qmark").forEach((qm, i) => {
+        tl.from(
+          qm,
+          { scale: 0.6, duration: 0.4, ease: "back.out(2)" },
+          18.5 + i * 0.4
+        );
+      });
+
+      // ───── scene 3: package grid pops in cell-by-cell ─────
+      const pkgIds = [
+        "pkg-policy",
+        "pkg-workflow",
+        "pkg-registry",
+        "pkg-routing",
+        "pkg-orchestrator",
+        "pkg-verifier",
+      ];
+      pkgIds.forEach((id, i) => {
+        const el = document.querySelector("#" + id);
+        if (!el) return;
+        gsap.set(el, { y: 30, opacity: 0, scale: 0.95 });
+        tl.to(
+          el,
+          { y: 0, opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" },
+          41.5 + i * 0.25
+        );
+      });
+      // Title and paragraph stagger
+      const title3 = document.querySelector("#title-3");
+      const para3 = document.querySelector("#para-3");
+      if (title3) {
+        gsap.set(title3, { y: 25, opacity: 0 });
+        tl.to(title3, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 39.7);
+      }
+      if (para3) {
+        gsap.set(para3, { y: 20, opacity: 0 });
+        tl.to(para3, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 40.7);
+      }
+
+      // ───── scene 4: 5 workflow steps light up in sequence ─────
+      const stepIds = ["step-1", "step-2", "step-3", "step-4", "step-5"];
+      const stepLightupTimes = [73.5, 77.0, 81.0, 87.0, 95.0];
+      stepIds.forEach((id, i) => {
+        const el = document.querySelector("#" + id);
+        if (!el) return;
+        gsap.set(el, { y: 20, opacity: 0 });
+        tl.to(el, { y: 0, opacity: 1, duration: 0.4, ease: "power2.out" }, 72.5 + i * 0.2);
+        // light up the step at its audio cue
+        tl.add(() => el.classList.add("active"), stepLightupTimes[i]);
+        tl.add(() => el.classList.remove("active"), stepLightupTimes[i] + 2.5);
+      });
+      const title4 = document.querySelector("#title-4");
+      const para4 = document.querySelector("#para-4");
+      if (title4) {
+        gsap.set(title4, { y: 25, opacity: 0 });
+        tl.to(title4, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 71.8);
+      }
+      if (para4) {
+        gsap.set(para4, { y: 20, opacity: 0 });
+        tl.to(para4, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 100.5);
+      }
+
+      // ───── scene 5: code window typewriter effect ─────
+      const codeEl = document.querySelector("#code-5");
+      if (codeEl) {
+        // We reveal the code character by character.
+        const fullText = codeEl.innerHTML;
+        codeEl.innerHTML = "";
+        codeEl.style.minHeight = "260px";
+        const proxy = { i: 0 };
+        // Reveal gradually from 102.5s to 113.5s (10s for ~700 chars)
+        tl.to(
+          proxy,
+          {
+            i: fullText.length,
+            duration: 11,
+            ease: "none",
+            onUpdate: () => {
+              const len = Math.floor(proxy.i);
+              // Use textContent for safety with HTML chars
+              codeEl.textContent = fullText.slice(0, len);
+            },
+          },
+          102.5
+        );
+        // Then fade in the styled HTML version (with the .ok / .tx colors)
+        tl.to(
+          {},
+          {
+            duration: 0.01,
+            onComplete: () => {
+              codeEl.innerHTML = fullText;
+            },
+          },
+          113.5
+        );
+      }
+      const title5 = document.querySelector("#title-5");
+      const para5 = document.querySelector("#para-5");
+      if (title5) {
+        gsap.set(title5, { y: 25, opacity: 0 });
+        tl.to(title5, { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" }, 101.5);
+      }
+      if (para5) {
+        gsap.set(para5, { y: 20, opacity: 0 });
+        tl.to(para5, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" }, 116);
+      }
+
+      // ───── scene 6: three statements drop in sequentially ─────
+      const st1 = document.querySelector("#st-1");
+      const st2 = document.querySelector("#st-2");
+      const st3 = document.querySelector("#st-3");
+      const cta6 = document.querySelector("#cta-6");
+      [st1, st2, st3].forEach((s, i) => {
+        if (!s) return;
+        gsap.set(s, { y: 40, opacity: 0, x: -30 });
+        tl.to(
+          s,
+          { y: 0, x: 0, opacity: 1, duration: 0.7, ease: "power3.out" },
+          128 + i * 3.5
+        );
+      });
+      // The dot-marks pulse
+      document
+        .querySelectorAll("#statements-6 .dot-mark")
+        .forEach((dot, i) => {
+          tl.from(
+            dot,
+            { scale: 0, duration: 0.4, ease: "back.out(3)" },
+            128 + i * 3.5
+          );
+          // Then a steady pulse
+          tl.to(
+            dot,
+            {
+              scale: 1.4,
+              duration: 1.2,
+              yoyo: true,
+              repeat: 1,
+              ease: "sine.inOut",
+            },
+            130 + i * 3.5
+          );
+        });
+      if (cta6) {
+        gsap.set(cta6, { y: 30, opacity: 0, scale: 0.96 });
+        tl.to(
+          cta6,
+          { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.2)" },
+          140
+        );
+        // Subtle pulse on the CTA border after it lands
+        tl.to(
+          cta6,
+          {
+            boxShadow: "0 0 40px rgba(110, 231, 183, 0.4)",
+            duration: 1.4,
+            yoyo: true,
+            repeat: 3,
+            ease: "sine.inOut",
+          },
+          142
+        );
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
