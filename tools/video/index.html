@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Pharos Multi-Agent Job Router — Intro</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #07080c;
+        /* System font stack — no external @font-face so the bundler
+           can lint and render the composition offline. Inter falls
+           back to system-ui, JetBrains Mono falls back to Consolas. */
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+        color: #f4f4f5;
+      }
+      code,
+      pre,
+      .mono {
+        font-family: "JetBrains Mono", monospace;
+      }
+      :root {
+        --bg: #07080c;
+        --bg-elev: #0d0f15;
+        --bg-card: #131520;
+        --line: #1f2230;
+        --text: #f4f4f5;
+        --text-dim: #9ca3af;
+        --text-faint: #52596b;
+        --accent: #6ee7b7;
+        --accent-2: #38bdf8;
+        --accent-3: #fbbf24;
+        --grad-1: linear-gradient(135deg, #6ee7b7 0%, #38bdf8 100%);
+        --grad-2: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      }
+      .bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            ellipse at 20% 30%,
+            rgba(56, 189, 248, 0.15) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 80% 70%,
+            rgba(110, 231, 183, 0.12) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 50% 90%,
+            rgba(129, 140, 248, 0.08) 0%,
+            transparent 60%
+          );
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.03) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.03) 1px,
+            transparent 1px
+          );
+        background-size: 80px 80px;
+        mask-image: radial-gradient(
+          ellipse at center,
+          black 30%,
+          transparent 80%
+        );
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      .scanline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent) 50%,
+          transparent
+        );
+        opacity: 0.6;
+      }
+      .eyebrow {
+        position: absolute;
+        top: 60px;
+        left: 80px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+      .eyebrow .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 16px var(--accent);
+      }
+      .eyebrow .chain {
+        color: var(--text-faint);
+      }
+      .footer {
+        position: absolute;
+        bottom: 60px;
+        left: 80px;
+        right: 80px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 18px;
+        color: var(--text-faint);
+        letter-spacing: 0.05em;
+      }
+      .footer .repo {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text-dim);
+      }
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 180px 200px;
+      }
+      .card {
+        position: relative;
+        width: 1520px;
+        min-height: 600px;
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 80px 96px;
+        display: flex;
+        flex-direction: column;
+        gap: 32px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+      }
+      .card .label {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .card h1 {
+        font-size: 96px;
+        font-weight: 700;
+        line-height: 1.05;
+        background: var(--grad-1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .card h2 {
+        font-size: 64px;
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--text);
+      }
+      .card p {
+        font-size: 36px;
+        line-height: 1.5;
+        color: var(--text-dim);
+        font-weight: 400;
+      }
+      .card .accent {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .card .accent-2 {
+        color: var(--accent-2);
+        font-weight: 600;
+      }
+      .card .accent-3 {
+        color: var(--accent-3);
+        font-weight: 600;
+      }
+      .card .mono {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--accent-2);
+      }
+      .dag {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 60px;
+        margin-top: 24px;
+      }
+      .dag-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .dag-node .pill {
+        padding: 18px 28px;
+        background: var(--bg-elev);
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 28px;
+        color: var(--text);
+      }
+      .dag-node.verified .pill {
+        border-color: var(--accent);
+        color: var(--accent);
+        box-shadow: 0 0 30px rgba(110, 231, 183, 0.4);
+      }
+      .dag-node .name {
+        font-size: 16px;
+        color: var(--text-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .dag-arrow {
+        font-size: 36px;
+        color: var(--accent-2);
+      }
+      .receipt {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 32px 40px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        line-height: 1.7;
+      }
+      .receipt .k {
+        color: var(--text-faint);
+        display: inline-block;
+        width: 220px;
+      }
+      .receipt .v {
+        color: var(--accent);
+      }
+      .receipt .v-link {
+        color: var(--accent-2);
+        text-decoration: underline;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 24px;
+      }
+      .stat {
+        background: var(--bg-elev);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 28px 32px;
+      }
+      .stat .num {
+        font-size: 64px;
+        font-weight: 700;
+        background: var(--grad-2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        line-height: 1;
+      }
+      .stat .lbl {
+        font-size: 18px;
+        color: var(--text-dim);
+        margin-top: 8px;
+        letter-spacing: 0.05em;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="103"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg"></div>
+      <div class="grid"></div>
+      <div class="frame"></div>
+      <div
+        class="scanline clip"
+        data-start="0"
+        data-duration="103"
+        data-track-index="3"
+      ></div>
+
+      <div
+        class="eyebrow clip"
+        data-start="0"
+        data-duration="103"
+        data-track-index="4"
+      >
+        <span class="dot"></span>
+        <span>Pharos Atlantic</span>
+        <span class="chain">/ chain id 688689</span>
+      </div>
+
+      <div
+        class="footer clip"
+        data-start="0"
+        data-duration="103"
+        data-track-index="4"
+      >
+        <span class="repo">noahgoad/multi-agent-job-router</span>
+        <span>84/84 tests · MIT</span>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-1"
+        data-start="0"
+        data-duration="13.6"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Pharos · Multi-Agent Job Router</span>
+            <h1>Điều phối phân tán.<br />Neo cứng trên chain.</h1>
+            <p>
+              Một hệ thống giao tác vụ cho những tác nhân AI đủ năng lực — và
+              xác minh kết quả bằng
+              <span class="accent">blockchain Pharos Atlantic</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-2"
+        data-start="13.6"
+        data-duration="16.5"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Bài toán</span>
+            <h2>Nhiều mô hình AI,<br />cùng giải một bài toán.</h2>
+            <p>
+              Nhưng ai <span class="accent-3">đáng tin</span>? Kết quả nào
+              <span class="accent-3">đúng</span>? Ai chịu
+              <span class="accent-3">trách nhiệm</span>?
+            </p>
+            <p
+              style="
+                margin-top: 16px;
+                color: var(--text-faint);
+                font-size: 28px;
+              "
+            >
+              Đó chính là bài toán mà Pharos Job Router giải quyết.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-3"
+        data-start="30.1"
+        data-duration="19.9"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Giải pháp</span>
+            <h2>
+              Biên dịch tác vụ thành <span class="accent">đồ thị DAG</span>.
+            </h2>
+            <p>
+              Mỗi node chọn tác nhân theo năng lực, độ tin cậy, chi phí, độ trễ.
+              Mỗi cạnh có <span class="mono">contentHash</span>. Mỗi kết quả có
+              <span class="mono">receipt</span>.
+            </p>
+            <div class="dag">
+              <div class="dag-node verified">
+                <div class="pill">t1</div>
+                <div class="name">fetch</div>
+              </div>
+              <div class="dag-arrow">→</div>
+              <div class="dag-node verified">
+                <div class="pill">t2</div>
+                <div class="name">analyze</div>
+              </div>
+              <div class="dag-arrow">→</div>
+              <div class="dag-node verified">
+                <div class="pill">t4</div>
+                <div class="name">summarize</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-4"
+        data-start="50"
+        data-duration="20"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Kiến trúc</span>
+            <h2>
+              Receipt cuối cùng<br />được neo trên
+              <span class="accent">chain</span>.
+            </h2>
+            <p>
+              Hợp đồng <span class="mono">JobRouterRegistry</span> lưu bốn root:
+              <span class="mono">dagHash</span>,
+              <span class="mono">assignmentRoot</span>,
+              <span class="mono">resultRoot</span>,
+              <span class="mono">verificationRoot</span>. Bất kỳ ai cũng xác
+              minh được từ đầu đến cuối.
+            </p>
+            <div class="receipt">
+              <div>
+                <span class="k">chainId</span><span class="v">688689</span>
+              </div>
+              <div>
+                <span class="k">registry</span
+                ><span class="v v-link">0xb111…187</span>
+              </div>
+              <div>
+                <span class="k">isFinalized</span><span class="v">true</span>
+              </div>
+              <div>
+                <span class="k">explorer</span
+                ><span class="v v-link">atlantic.pharosscan.xyz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-5"
+        data-start="70"
+        data-duration="20"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Demo đang chạy</span>
+            <h2>
+              Một click.<br />Bốn tác vụ.
+              <span class="accent">Anchor xong.</span>
+            </h2>
+            <p>
+              Bản demo chạy trên Render. Bạn có thể mở explorer của Pharos
+              Atlantic, dán địa chỉ biên nhận, và xem toàn bộ lịch sử tác vụ
+              trên blockchain.
+            </p>
+            <pre
+              class="mono"
+              style="
+                background: var(--bg-elev);
+                border: 1px solid var(--line);
+                border-radius: 14px;
+                padding: 28px 32px;
+                font-size: 22px;
+                line-height: 1.6;
+                color: var(--text-dim);
+                white-space: pre-wrap;
+                margin-top: 16px;
+              "
+            >
+$ curl -X POST /jobs/demo/play
+  t1  ASSIGNED → RUNNING → VERIFIED
+  t2  ASSIGNED → RUNNING → VERIFIED
+  t3  ASSIGNED → RUNNING → VERIFIED
+  t4  ASSIGNED → RUNNING → VERIFIED
+✓ recordAssignment  tx=0x59ab…559
+✓ finalizeReceipt    tx=0x532c…67f
+→ isFinalized: true (on-chain)</pre
+            >
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="clip"
+        id="scene-6"
+        data-start="90"
+        data-duration="13"
+        data-track-index="0"
+      >
+        <div class="stage">
+          <div class="card">
+            <span class="label">Mã nguồn mở</span>
+            <h1>MIT licensed.</h1>
+            <div class="stats">
+              <div class="stat">
+                <div class="num">84/84</div>
+                <div class="lbl">tests passing</div>
+              </div>
+              <div class="stat">
+                <div class="num">11</div>
+                <div class="lbl">workspaces</div>
+              </div>
+              <div class="stat">
+                <div class="num">688689</div>
+                <div class="lbl">Pharos Atlantic</div>
+              </div>
+            </div>
+            <p style="margin-top: 24px">
+              Hẹn gặp lại trên
+              <span class="mono"
+                >github.com/noahgoad/multi-agent-job-router</span
+              >
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <audio
+        data-start="0"
+        data-duration="103"
+        data-track-index="1"
+        src="assets/narration_full.wav"
+        preload="auto"
+      ></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.to(".scanline", { y: 1080, duration: 103, ease: "none" }, 0);
+
+      const sceneStarts = { 1: 0, 2: 13.6, 3: 30.1, 4: 50, 5: 70, 6: 90 };
+      // Each scene gets its own querySelector literal — no template
+      // literal, because the HTML bundler's CSS parser crashes on
+      // interpolated variables in script content.
+      const scene1Card = document.querySelector("#scene-1 .card");
+      const scene2Card = document.querySelector("#scene-2 .card");
+      const scene3Card = document.querySelector("#scene-3 .card");
+      const scene4Card = document.querySelector("#scene-4 .card");
+      const scene5Card = document.querySelector("#scene-5 .card");
+      const scene6Card = document.querySelector("#scene-6 .card");
+      const sceneCards = [
+        scene1Card,
+        scene2Card,
+        scene3Card,
+        scene4Card,
+        scene5Card,
+        scene6Card,
+      ];
+      for (let i = 0; i < 6; i++) {
+        const start = sceneStarts[i + 1];
+        const card = sceneCards[i];
+        if (!card) continue;
+        gsap.set(card, { y: 60, opacity: 0 });
+        tl.to(
+          card,
+          { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+          start
+        );
+        tl.to(
+          card,
+          { y: -30, opacity: 0, duration: 0.5, ease: "power2.in" },
+          start + 12
+        );
+      }
+
+      document.querySelectorAll("#scene-3 .dag-node").forEach((node, i) => {
+        gsap.set(node, { scale: 0.6, opacity: 0 });
+        tl.to(
+          node,
+          { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.7)" },
+          32 + i * 0.6
+        );
+      });
+      document.querySelectorAll("#scene-3 .dag-arrow").forEach((arrow, i) => {
+        gsap.set(arrow, { opacity: 0 });
+        tl.to(arrow, { opacity: 1, duration: 0.2 }, 32.4 + i * 0.6);
+      });
+
+      const receipt = document.querySelector("#scene-4 .receipt");
+      if (receipt) {
+        gsap.set(receipt, { x: 60, opacity: 0 });
+        tl.to(
+          receipt,
+          { x: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+          53
+        );
+      }
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
