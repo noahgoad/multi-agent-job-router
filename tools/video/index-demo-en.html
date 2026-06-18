@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Pharos Multi-Agent Job Router — Demo Step-by-Step (EN)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #07080c;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          system-ui, sans-serif;
+        color: #f4f4f5;
+      }
+      code,
+      pre,
+      .mono {
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
+      }
+      :root {
+        --bg: #07080c;
+        --bg-elev: #0d0f15;
+        --bg-card: #131520;
+        --bg-card-2: #1a1d2c;
+        --line: #1f2230;
+        --line-2: #2a2e40;
+        --text: #f4f4f5;
+        --text-dim: #9ca3af;
+        --text-faint: #52596b;
+        --accent: #fcd535; /* Pharos yellow */
+        --accent-2: #5b8def; /* Pharos blue */
+        --accent-3: #8b5cf6; /* Pharos violet */
+        --grad-1: linear-gradient(135deg, #fcd535 0%, #fbbf24 100%);
+      }
+      /* ───── background layers (always on) ───── */
+      .bg {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            ellipse at 20% 25%,
+            rgba(252, 213, 53, 0.12) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 80% 75%,
+            rgba(91, 141, 239, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 50% 100%,
+            rgba(139, 92, 246, 0.08) 0%,
+            transparent 60%
+          );
+      }
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.025) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.025) 1px,
+            transparent 1px
+          );
+        background-size: 60px 60px;
+        mask-image: radial-gradient(
+          ellipse at center,
+          black 25%,
+          transparent 80%
+        );
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+      }
+      /* ───── top bar (always on) ───── */
+      .topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 70px;
+        padding: 0 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 16px;
+        z-index: 50;
+        color: var(--text-dim);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 600;
+        background: linear-gradient(
+          to bottom,
+          rgba(7, 8, 12, 0.85),
+          transparent
+        );
+      }
+      .topbar .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: var(--text);
+      }
+      .topbar .brand .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 16px var(--accent);
+      }
+      .topbar .meta {
+        font-family: "Consolas", monospace;
+        font-size: 14px;
+        color: var(--text-faint);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      /* ───── main stage ───── */
+      .stage {
+        position: absolute;
+        inset: 70px 0 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card {
+        position: absolute;
+        inset: 80px 100px;
+        background: rgba(13, 15, 21, 0.4);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card .chrome {
+        height: 44px;
+        padding: 0 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(7, 8, 12, 0.6);
+        border-bottom: 1px solid var(--line);
+        font-family: "Consolas", monospace;
+        font-size: 14px;
+        color: var(--text-faint);
+        letter-spacing: 0.04em;
+      }
+      .card .chrome .left {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .card .chrome .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .card .chrome .dot.r {
+        background: #f87171;
+      }
+      .card .chrome .dot.y {
+        background: #fbbf24;
+      }
+      .card .chrome .dot.g {
+        background: #4ade80;
+      }
+      .card .screenshot {
+        flex: 1;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-color: #050507;
+      }
+      /* ───── caption ───── */
+      .caption {
+        position: absolute;
+        bottom: 60px;
+        left: 100px;
+        right: 100px;
+        padding: 28px 36px;
+        background: linear-gradient(
+          135deg,
+          rgba(13, 15, 21, 0.92) 0%,
+          rgba(7, 8, 12, 0.85) 100%
+        );
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        border-radius: 14px;
+        backdrop-filter: blur(20px);
+        z-index: 60;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      .caption .step {
+        display: inline-block;
+        font-family: "Consolas", monospace;
+        font-size: 14px;
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+      }
+      .caption .text {
+        font-size: 28px;
+        line-height: 1.45;
+        color: var(--text);
+        font-weight: 500;
+      }
+      .caption .text strong {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      /* ───── title scene (intro) ───── */
+      .title-scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 100;
+      }
+      .title-scene .badge {
+        font-family: "Consolas", monospace;
+        font-size: 18px;
+        color: var(--accent);
+        letter-spacing: 0.2em;
+        margin-bottom: 24px;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .title-scene h1 {
+        font-size: 96px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        max-width: 1500px;
+        color: var(--text);
+        margin-bottom: 32px;
+      }
+      .title-scene h1 .accent {
+        background: var(--grad-1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .title-scene .sub {
+        font-size: 28px;
+        color: var(--text-dim);
+        max-width: 1100px;
+        line-height: 1.5;
+      }
+      /* ───── outro scene ───── */
+      .outro-scene {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 100;
+      }
+      .outro-scene h2 {
+        font-size: 72px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+        margin-bottom: 28px;
+        color: var(--text);
+      }
+      .outro-scene p {
+        font-size: 26px;
+        color: var(--text-dim);
+        max-width: 1000px;
+        line-height: 1.5;
+        margin-bottom: 50px;
+      }
+      .outro-scene .links {
+        display: flex;
+        gap: 24px;
+        font-family: "Consolas", monospace;
+        font-size: 18px;
+        color: var(--text-faint);
+      }
+      .outro-scene .links span {
+        padding: 14px 28px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(13, 15, 21, 0.5);
+      }
+      /* ───── progress bar at the bottom ───── */
+      .progress {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.04);
+        z-index: 80;
+      }
+      .progress .bar {
+        height: 100%;
+        background: linear-gradient(
+          to right,
+          var(--accent) 0%,
+          var(--accent-2) 100%
+        );
+        width: 0%;
+      }
+      .progress .dot {
+        position: absolute;
+        top: -3px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 12px var(--accent);
+        left: 0%;
+        transform: translateX(-50%);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="51.55"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div class="bg"></div>
+      <div class="grid"></div>
+      <div class="frame"></div>
+
+      <div class="topbar">
+        <div class="brand">
+          <div class="dot"></div>
+          <span>Pharos · Multi-Agent Job Router</span>
+        </div>
+        <div class="meta">
+          Testnet Atlantic · chain 688689 · Demo step-by-step
+        </div>
+      </div>
+
+      <!-- Title scene (intro) -->
+      <div class="title-scene" id="title-scene">
+        <div class="badge">Step-by-step walkthrough</div>
+        <h1>
+          Walking through<br /><span class="accent">a real job on Pharos</span>
+        </h1>
+        <div class="sub">
+          Open the dashboard, click the button, read the DAG, watch the receipt
+          anchor on the Atlantic chain.
+        </div>
+      </div>
+
+      <!-- Screenshot card (hidden until first scene) -->
+      <div class="card" id="card">
+        <div class="chrome">
+          <div class="left">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+            <span>pharos-router · dashboard · /jobs/demo</span>
+          </div>
+          <div>127.0.0.1:5180</div>
+        </div>
+        <div class="screenshot" id="screenshot"></div>
+      </div>
+
+      <!-- Caption (one per scene) -->
+      <div class="caption" id="caption">
+        <div class="step" id="caption-step">Step 1</div>
+        <div class="text" id="caption-text"></div>
+      </div>
+
+      <!-- Outro scene -->
+      <div class="outro-scene" id="outro-scene">
+        <h2>That is the entire Pharos flow.</h2>
+        <p>
+          Every state is visible on the dashboard, agents route themselves, and
+          the receipt lands on-chain — no server-side cron, no trusted
+          middleman.
+        </p>
+        <div class="links">
+          <span>Repo: pharos-future-ideas / 04-multi-agent-job-router</span>
+          <span>Testnet Atlantic · 688689</span>
+        </div>
+      </div>
+
+      <div class="progress">
+        <div class="bar" id="progress-bar"></div>
+        <div class="dot" id="progress-dot"></div>
+      </div>
+    </div>
+
+    <script>
+      // ───── Scene timing (seconds) ─────
+      // Each entry's `duration` is the time the scene is on screen.
+      // Audio segments are matched to scenes 02..07; the title
+      // (01) and outro (08) are silent intros/outros.
+      const TITLE_DURATION = 3.5;
+      const OUTRO_DURATION = 3.5;
+      const GAP = 0.25; // breathing room between scenes
+      const SCENES = [
+        {
+          step: "Step 1 · Open the dashboard",
+          text: "Welcome to the Pharos Multi-Agent Job Router dashboard, running live on the Atlantic testnet.",
+          image: ".local-render/demo-screens/01-planned.png",
+          duration: 7.1,
+        },
+        {
+          step: "Step 2 · Initial state",
+          text: "All four tasks are in the PLANNED state, waiting for the system to process them.",
+          image: ".local-render/demo-screens/01-planned.png",
+          duration: 5.4,
+        },
+        {
+          step: "Step 3 · Click the button",
+          text: "I click the Happy button. The system will now run the happy-path scenario on its own.",
+          image: ".local-render/demo-screens/01-planned.png",
+          duration: 5.8,
+        },
+        {
+          step: "Step 4 · The DAG runs",
+          text: "Task t1 is verified. The router now fans out to t2 and t3 in parallel.",
+          image: ".local-render/demo-screens/03-mid.png",
+          duration: 6.4,
+        },
+        {
+          step: "Step 5 · All complete",
+          text: "All four tasks are VERIFIED. Total cost is just four micro-USDC, and the best agent was selected for each one.",
+          image: ".local-render/demo-screens/06-top-final.png",
+          duration: 8.8,
+        },
+        {
+          step: "Step 6 · Receipt on chain",
+          text: "The receipt is now anchored on the Atlantic chain, with DAG hash, assignment root, and verification root captured.",
+          image: ".local-render/demo-screens/05-receipt.png",
+          duration: 10.0,
+        },
+      ];
+
+      // Build the absolute timeline.
+      let t = 0;
+      const titleStart = t;
+      t += TITLE_DURATION;
+      const sceneStarts = [];
+      const sceneEnds = [];
+      const sceneCards = [];
+      const sceneCaptions = [];
+      for (let i = 0; i < SCENES.length; i++) {
+        const s = SCENES[i];
+        const start = t;
+        sceneStarts.push(start);
+        sceneEnds.push(start + s.duration);
+        t += s.duration;
+        if (i < SCENES.length - 1) t += GAP;
+      }
+      const outroStart = t;
+      t += OUTRO_DURATION;
+      const total = t;
+      document.body.dataset.duration = total.toFixed(2);
+
+      // ───── pre-render caption elements (one per scene) ─────
+      const captionEl = document.getElementById("caption");
+      const captionStepEl = document.getElementById("caption-step");
+      const captionTextEl = document.getElementById("caption-text");
+      const cardEl = document.getElementById("card");
+      const screenshotEl = document.getElementById("screenshot");
+      const titleEl = document.getElementById("title-scene");
+      const outroEl = document.getElementById("outro-scene");
+      const progressBarEl = document.getElementById("progress-bar");
+      const progressDotEl = document.getElementById("progress-dot");
+
+      // Hide everything that animates in.
+      titleEl.style.opacity = "0";
+      cardEl.style.opacity = "0";
+      captionEl.style.opacity = "0";
+      captionEl.style.transform = "translateY(20px)";
+      outroEl.style.opacity = "0";
+      outroEl.style.transform = "scale(0.95)";
+
+      const tl = gsap.timeline({ paused: true });
+      // Title in
+      tl.to(
+        titleEl,
+        { opacity: 1, duration: 0.6, ease: "power2.out" },
+        titleStart + 0.1
+      );
+      tl.to(
+        titleEl,
+        { opacity: 0, duration: 0.5, ease: "power2.in" },
+        titleStart + TITLE_DURATION - 0.5
+      );
+
+      // Per-scene animation. Each scene:
+      //   0.2s: caption rises in
+      //   last 0.5s: caption fades out
+      // The screenshot card has a soft cross-fade between scenes so
+      // the change is visible even if the new image is similar.
+      for (let i = 0; i < SCENES.length; i++) {
+        const s = SCENES[i];
+        const start = sceneStarts[i];
+        const end = sceneEnds[i];
+        // Pre-set the screenshot to this scene's image.
+        tl.set(screenshotEl, { backgroundImage: `url("${s.image}")` }, start);
+        // Card slides in from the right (subtle).
+        if (i === 0) {
+          tl.fromTo(
+            cardEl,
+            { opacity: 0, x: 40, scale: 0.985 },
+            { opacity: 1, x: 0, scale: 1, duration: 0.7, ease: "power3.out" },
+            start
+          );
+        } else {
+          tl.fromTo(
+            cardEl,
+            { opacity: 0.0, x: 30, scale: 0.99 },
+            { opacity: 1, x: 0, scale: 1, duration: 0.55, ease: "power3.out" },
+            start
+          );
+        }
+        // Caption text changes + rises in.
+        tl.set(captionStepEl, { textContent: s.step }, start);
+        tl.set(captionTextEl, { textContent: s.text }, start);
+        tl.fromTo(
+          captionEl,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+          start + 0.15
+        );
+        // Hold, then fade out before the next scene.
+        tl.to(
+          captionEl,
+          { opacity: 0, y: -10, duration: 0.4, ease: "power2.in" },
+          end - 0.5
+        );
+        // Slight cross-fade on the card itself.
+        if (i < SCENES.length - 1) {
+          tl.to(
+            cardEl,
+            { opacity: 0.4, duration: 0.25, ease: "power1.in" },
+            end - 0.15
+          );
+          tl.to(
+            cardEl,
+            { opacity: 1, duration: 0.35, ease: "power1.out" },
+            end + 0.05
+          );
+        }
+      }
+
+      // Outro: card + caption out, outro scene scales in.
+      tl.to(
+        cardEl,
+        { opacity: 0, duration: 0.4, ease: "power1.in" },
+        outroStart
+      );
+      tl.to(captionEl, { opacity: 0, duration: 0.3 }, outroStart);
+      tl.fromTo(
+        outroEl,
+        { opacity: 0, scale: 0.95 },
+        { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+        outroStart + 0.2
+      );
+
+      // Progress bar (visual cue only, not synced to audio).
+      tl.to(progressBarEl, { width: "100%", duration: total, ease: "none" }, 0);
+      tl.to(progressDotEl, { left: "100%", duration: total, ease: "none" }, 0);
+
+      // Auto-play.
+      tl.play();
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl; // for debugging
+    </script>
+  </body>
+</html>

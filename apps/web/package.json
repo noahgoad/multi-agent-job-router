@@ -1,26 +1,27 @@
 {
-    "name":  "@pharos-router/web",
-    "version":  "0.1.0",
-    "private":  true,
-    "type":  "module",
-    "main":  "dist/src/index.js",
-    "scripts":  {
-                    "build":  "tsc -b",
-                    "typecheck":  "tsc -b --pretty",
-                    "dev":  "vite",
-                    "test":  "vitest run",
-                    "test:e2e":  "playwright test"
-                },
-    "dependencies":  {
-                         "@pharos-router/sdk":  "0.1.0",
-                         "react":  "^18.3.0",
-                         "react-dom":  "^18.3.0"
-                     },
-    "devDependencies":  {
-                            "@playwright/test":  "^1.44.0",
-                            "@types/react":  "^18.3.0",
-                            "@types/react-dom":  "^18.3.0",
-                            "@vitejs/plugin-react":  "^4.3.0",
-                            "vite":  "^5.2.0"
-                        }
+  "name": "@pharos-router/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/src/index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty",
+    "dev": "vite",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "vercel-build": "cd ../.. && npm run build && npx vite build"
+  },
+  "dependencies": {
+    "@pharos-router/sdk": "0.1.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "vite": "^5.2.0"
+  }
 }

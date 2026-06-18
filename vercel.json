@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build && cd apps/web && npx vite build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "npm ci --include=dev",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/jobs/:path*",
+      "destination": "/api/proxy?path=jobs/:path*"
+    },
+    {
+      "source": "/healthz",
+      "destination": "/api/proxy?path=healthz"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}

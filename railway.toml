@@ -1,0 +1,14 @@
+[build]
+builder = "NIXPACKS"
+# --include=dev is critical: Railway's NODE_ENV=production skips
+# devDependencies (TypeScript, Hardhat) by default. We need them at
+# build time for `tsc -b`. The Node version is pinned via .nvmrc at
+# the repo root.
+buildCommand = "npm ci --include=dev && npm run build"
+
+[deploy]
+startCommand = "node apps/api/dist/src/main.js"
+healthcheckPath = "/healthz"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

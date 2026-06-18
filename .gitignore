@@ -27,6 +27,9 @@ yarn-error.log*
 .idea/
 .DS_Store
 
+# Vercel CLI local state (project link, deployment cache)
+.vercel/
+
 # Test output
 artifacts/
 cache/
@@ -64,3 +67,12 @@ tools/video/assets/narration_en_full.wav
 tools/video/pharos-intro.mp4
 tools/video/pharos-intro-en.mp4
 tools/video/renders/
+
+# tools/video/.local-render and tools/video/.elevenlabs-render hold
+# scratch compositions and outputs for one-off local renders
+# (e.g. paid-TTS variants). They are gitignored so the output of
+# a private local run never leaks into the public repo by accident.
+tools/video/.local-render/
+tools/video/.elevenlabs-render/
+
+.vercel

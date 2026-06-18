@@ -1,18 +1,34 @@
 # Render Blueprint for the Pharos Multi-Agent Job Router
 #
-# This file lets Render spin up both the API (Web Service) and the
-# dashboard (Web Service) from a single click.
+# ⚠️  LEGACY — the project has migrated to Railway.
 #
-# How to use:
-#   1. Push this repo to GitHub (already done).
+# This Blueprint remains here as a fallback / reference. The current
+# production target is:
+#
+#   API (long-running)  → Railway   (see `railway.toml` + `docs/deployment/railway.md`)
+#   Web (static SPA)    → Vercel    (see `vercel.json` + `docs/deployment/vercel.md`)
+#
+# Render's free tier sleeps services after 15 minutes, so the API
+# cold-started ~30s on the first poll. Railway keeps the service
+# always-on at the same cost. The web is on Vercel's CDN for instant
+# static-asset loads.
+#
+# If you still want to deploy to Render (e.g. for parity with an existing
+# setup), this file is still valid. Use the original two-service layout
+# OR remove the web service below and deploy only the API.
+#
+# How to use this Blueprint (API only):
+#   1. Push this repo to GitHub.
 #   2. Sign in to https://render.com with GitHub.
 #   3. New + → Blueprint → connect the repo → Apply.
-#   4. Render reads this file, creates both services, builds, and
-#      gives you two URLs:
+#   4. Render reads this file, creates one Web Service, builds, and
+#      gives you a URL like:
 #         - https://pharos-router-api.onrender.com
-#         - https://pharos-router-web.onrender.com
-#   5. Open the web URL with ?authToken=<the token from step 6> to
-#      seed the demo job.
+#   5. After the Vercel dashboard is deployed, add its origin to
+#      `CORS_ORIGINS` below (comma-separated) and redeploy the API.
+#      Example: `https://pharos-router-web.vercel.app,https://your-custom-domain.com`
+#   6. The Vercel dashboard URL with `?authToken=<the token from
+#      the Render Environment tab>` will then seed and play the demo.
 #
 # Variables generated at apply time:
 #   - PHAROS_ROUTER_AUTH_TOKEN is a 32-byte hex secret stored in the
@@ -59,7 +75,10 @@ services:
       - key: PHAROS_ROUTER_AUTH_TOKEN
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://pharos-router-web-jrst.onrender.com
+        # Comma-separated allow-list. Add the Vercel dashboard origin
+        # after first deploy (e.g. https://pharos-router-web.vercel.app).
+        # The render-hosted web origin is kept for fallback / testing.
+        value: https://pharos-router-web-jrst.onrender.com,https://pharos-router-web.vercel.app
       - key: API_HOST
         value: 0.0.0.0
       - key: API_PORT
